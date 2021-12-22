@@ -19,7 +19,9 @@ typedef struct paziente {
     int classe_eta;             // classe di età del paziente (solo per pazienti covid)
     int gravita;                // livello di gravita (solo per pazienti normali)
 
-    double timeout;             // tempo nel quale il paziente muore nella coda
+    double timeout;             /* tempo nel quale il paziente muore nella coda.
+                                   La rapidità con cui un paziente si aggrava
+                                   è funzione di gravità e timeout*/
     double ingresso;            // tempo nel quale il paziente è entrato nella coda
     
     struct paziente* next;      // prossimo paziente nella coda
@@ -36,7 +38,7 @@ double ottieni_timeout_paziente(int tipo) {
 
 int ottieni_classe_eta_paziente() {
 
-    double var = uniform(0, 100);
+    double var = uniform(0, 100); //Da rivedere
     
     if(var < PERC_GIOVANI)
         return GIOVANE;

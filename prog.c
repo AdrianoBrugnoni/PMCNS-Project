@@ -155,7 +155,7 @@ void aggiorna_flussi_covid() {
         prossimo_giorno += tick_per_giorno;
 
         // per ogni coda COVID e NCOVID di ogni ospedale invoca:
-        //    aggiorno_flusso_covid(&ospedale[i].coda[COVID], tempo_attuale);
+        // aggiorno_flusso_covid(&ospedale[i].coda[COVID], tempo_attuale);
 
     }
 }

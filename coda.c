@@ -26,7 +26,7 @@ void aggiorno_flusso_covid(_coda_pr* coda, double tempo_attuale) {
     if(coda->tipo != COVID)
         return;
 
-    // cambia coda->tasso_arrivo in funzione del  
+    // cambia coda->tasso_arrivo in funzione del
     // tempo attuale e dei dati storici analizzati
 }
 
@@ -78,7 +78,7 @@ void aggiungi_paziente(_coda_pr* coda, double tempo_attuale) {
 }
 
 void rimuovi_paziente(_coda_pr* coda, int id, int pr, double tempo_attuale) {
-    // il paziente presente in quella coda è morto
+    // il paziente presente in quella coda è morto :(
     // va rimosso facendo uso del suo id e lo si deve cercare nella
     // coda con priorità "coda" a livello di priorità indicato da "pr" (coda->testa[pr])
 
@@ -107,3 +107,11 @@ int rimuovi_primo_paziente(_coda_pr* coda, double tempo_attuale) {
 void calcola_prossimo_arrivo_in_coda(_coda_pr* coda, double tempo_attuale) {
     coda->prossimo_arrivo = tempo_attuale + ottieni_prossimo_arrivo_in_coda(coda->tasso_arrivo);
 }
+
+
+#ifdef TEST
+void main()
+{
+
+}
+#endif

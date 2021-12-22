@@ -16,14 +16,12 @@ static long seed[STREAMS] = { DEFAULT };
 static int  stream = 0;
 static int  initialized = 0;
 
-
 double Random(void);
 void   PlantSeeds(long x);
 void   GetSeed(long* x);
 void   PutSeed(long x);
 void   SelectStream(int index);
 void   TestRandom(void);
-
 
 double Random(void) {
     const long Q = MOD / MULTIPLIER;
