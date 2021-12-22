@@ -10,6 +10,8 @@
 #include "reparto.c"  // fa uso di commond.h, letto.c
 #include "ospedale.c" // fa uso di commond.h, reparto.c, coda.c
 
+#define FLUSSO_COVID_VARIABILE
+#define TERAPIE_VARIABILI
 
 #define ARRIVO 0                  // codice operativo dell'evento "arrivo di un paziente"
 #define COMPLETAMENTO 1           // codice operativo dell'evento "completamento di un paziente"
@@ -36,6 +38,8 @@ int num_ospedali;
 _ospedale* ospedale;
 
 double tempo_attuale;
+double prossimo_giorno;
+double tick_per_giorno;
 
 void inizializza_variabili() {
 
@@ -50,6 +54,8 @@ void inizializza_variabili() {
     // inizializza variabili simulazione
 
     tempo_attuale = START;
+    tick_per_giorno = 24;
+    prossimo_giorno = tick_per_giorno; // 24 ore
 }
 
 void ottieni_next_event(descrittore_next_event* ne) {
@@ -138,10 +144,41 @@ void processa_completamento(descrittore_next_event* ne) {
 }
 
 void processa_timeout(descrittore_next_event* ne) {
-
     // elimina la persona dalla coda invocando 
     //    rimuovi_paziente(ospedale[ne->id_ospedale].coda[ne->tipo], ne->id_paziente, ne->id_priorita, ne->tempo_ne)
     // prendi da "ne" la coda in cui è morto il paziente ed il suo numero identificativo
+}
+
+void aggiorna_flussi_covid() {
+
+    if(tempo_attuale >= prossimo_giorno) {
+        prossimo_giorno += tick_per_giorno;
+
+        // per ogni coda COVID e NCOVID di ogni ospedale invoca:
+        //    aggiorno_flusso_covid(&ospedale[i].coda[COVID], tempo_attuale);
+
+    }
+}
+
+void controlla_livelli_occupazione() {
+
+    // valuta ospedale[i].reparto[COVID] per ogni ospedale i
+    //    ottieni tasso di occupazione dei letti di quel reparto
+    //    se occupazione è maggiore di ospedale[i].soglia_ampliamento
+    //        cerca reparto k° non covid e bloccalo se ospedale[i].num_reparti_normali > ospedale[i].num_min_reparti_normali
+    //    se occupazione è minore di ospedale[i].soglia_riduzione
+    //        cerca reparto k° covid e bloccalo se ospedale[i].num_reparti_covid > ospedale[i].num_min_reparti_covid
+
+    // per cercare un reparto da bloccare: 
+    // per bloccare reparto: blocca_reparto(&ospedale[i].reparto[COVID][k])
+
+}
+
+void genera_output() {
+    // somma i dati di tutti i letti e di tutte le code per ogni ospedale
+    // mostra i valori medi della simulazione per ogni ospedale e nel complesso tra gli ospedali
+
+    // metti l'output in un file csv in modo tale da poter estrarne tabelle e grafici
 }
 
 int main() {
@@ -162,8 +199,15 @@ int main() {
             processa_timeout(next_event);
         }
 
-        // se abilitato, controlla se sono scattate le 24 ore per aggiornare il flusso di entrata
+        // se abilitato, cerca di aggiornare il flusso di entrata nelle code covid
+        #ifdef FLUSSO_COVID_VARIABILE
+        aggiorna_flussi_covid();
+        #endif
 
+        // se abilitato, controlla 
+        #ifdef TERAPIE_VARIABILI
+        controlla_livelli_occupazione();
+        #endif
         // se abilitato, controlla se le percentuali di utilizzazione di un ospedale hanno
         // raggiunto il valore di soglia in modo da bloccare un reparto. Se vi è già un reparto vuoto allora si fa la transformazione,
         // altrimenti si blocca solamente e si trasforma il reparto dentro la funzione processa_completamento()
@@ -172,5 +216,6 @@ int main() {
         tempo_attuale = next_event->tempo_ne;  // manda avanti il tempo della simulazione
     }
 
+    genera_output();
 
 }

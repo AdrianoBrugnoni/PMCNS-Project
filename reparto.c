@@ -18,6 +18,19 @@ void prepara_letti_reparto(_reparto* r, int letti_nel_reparto) {
         prepara_letto(&r->letto[i]);
 }
 
-void blocca_reparto() {
+double ottieni_occupazione_reparto(_reparto* r) {
 
+    double occupazione;
+
+    // valuta r->letto[i] per ogni i da 0 a r->num_letti
+    //      conta quanti letti sono occupati (r->letto[i].occupato == 1)
+    //      conta i letti totali
+
+    // calcola l'occupazione
+
+    return occupazione;
+}
+
+void blocca_reparto(_reparto* r) {
+    r->bloccato = 1;
 }

@@ -10,23 +10,31 @@ typedef struct {
 
 typedef struct {
     int tipo;               // il tipo della coda, covid o non covid
+    double tasso_arrivo;    // tasso di arrivo alla coda
     double prossimo_arrivo; // il tempo in cui avverrà il prossimo arrivo in coda
     int livello_pr;         // numero di code con priorità presenti nella coda
     paziente** testa;       // array di teste delle code con priorità
     dati_coda* dati;        // array di dati per ogni coda con priorità
 } _coda_pr;
 
-double ottieni_prossimo_arrivo_in_coda(int tipo) {
-    if(tipo == COVID)
-        return exponential(2);
-    else // if(tipo == NCOVID)
-        return exponential(3);
+double ottieni_prossimo_arrivo_in_coda(int tasso) {
+    return exponential(tasso);
 }
 
-void inizializza_coda_pr(_coda_pr* coda, int livello_pr, int tipo) {
+void aggiorno_flusso_covid(_coda_pr* coda, double tempo_attuale) {
+
+    if(coda->tipo != COVID)
+        return;
+
+    // cambia coda->tasso_arrivo in funzione del  
+    // tempo attuale e dei dati storici analizzati
+}
+
+void inizializza_coda_pr(_coda_pr* coda, int livello_pr, int tasso, int tipo) {
 
     coda->tipo = tipo;
-    coda->prossimo_arrivo = START + ottieni_prossimo_arrivo_in_coda(coda->tipo);
+    coda->tasso_arrivo = tasso;
+    coda->prossimo_arrivo = START + ottieni_prossimo_arrivo_in_coda(coda->tasso_arrivo);
     coda->livello_pr = livello_pr;
     coda->dati = malloc(sizeof(dati_coda) * coda->livello_pr);
     coda->testa = malloc(sizeof(paziente*) * coda->livello_pr);
@@ -45,6 +53,8 @@ void aggiungi_paziente(_coda_pr* coda, double tempo_attuale) {
 
     // crea un paziente
     paziente* p = genera_paziente(tempo_attuale, coda->tipo);
+
+    // qui il paziente potrebbe essere trasferito in un'altra coda
 
     // inseriscilo nell'apposito coda
     int num_coda;
@@ -95,5 +105,5 @@ int rimuovi_primo_paziente(_coda_pr* coda, double tempo_attuale) {
 }
 
 void calcola_prossimo_arrivo_in_coda(_coda_pr* coda, double tempo_attuale) {
-    coda->prossimo_arrivo = tempo_attuale + ottieni_prossimo_arrivo_in_coda(coda->tipo);
+    coda->prossimo_arrivo = tempo_attuale + ottieni_prossimo_arrivo_in_coda(coda->tasso_arrivo);
 }
