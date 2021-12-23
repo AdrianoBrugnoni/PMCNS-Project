@@ -122,13 +122,19 @@ void ottieni_next_event(descrittore_next_event* ne) {
 }
 
 void processa_arrivo(descrittore_next_event* ne) {
-    // l'arrivo è in ospedale[ne->id_ospedale].coda_covid OPPURE ospedale[ne->id_ospedale].coda_normale in funzione di ne->tipo
-    // invoca aggiungi_paziente(&ospedale[ne->id_ospedale].coda[ne->tipo], ne->tempo_ne);
-    // in questo modo si aggiunge un paziente in coda
 
-    // invoca prova_muovi_paziente_in_letto(&ospedale[ne->id_ospedale], ne->tempo_ne, ne->tipo)
-    // in questo modo, si vede se c'è un posto libero dentro un letto ed in caso
-    // si prende il paziente più importante e lo si ci mette
+    _ospedale* ospedale_di_arrivo = &ospedale[ne->id_ospedale];
+    _coda_pr* coda_di_arrivo = &ospedale[ne->id_ospedale].coda[ne->tipo];
+    double tempo_di_arrivo = ne->tempo_ne;
+    int tipo_di_arrivo = ne->tipo; // COVID o NCOVID
+
+    aggiungi_paziente(coda_di_arrivo, tempo_di_arrivo); // in questo modo si aggiunge un paziente in coda    
+    calcola_prossimo_arrivo_in_coda(coda_di_arrivo, tempo_di_arrivo); // genera il tempo del prossimo arrivo nella coda
+
+    // poichè un nuovo paziente è entrata in coda, si controlla 
+    // se c'è modo di muovere un paziente in un letto libero
+
+    prova_muovi_paziente_in_letto(ospedale_di_arrivo, tempo_di_arrivo, tipo_di_arrivo);
 }
 
 void processa_completamento(descrittore_next_event* ne) {

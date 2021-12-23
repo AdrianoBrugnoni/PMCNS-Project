@@ -75,31 +75,38 @@ void ottieni_prototipo_ospedale_1(_ospedale* o) {
 
 void prova_muovi_paziente_in_letto(_ospedale* o, double tempo_attuale, int tipo) {
 
-    // cerca un letto libero nel reparto COVID o NCOVID (usa parametro "tipo")
-    /*
-        per i da 0 a o->num_reparti[tipo]
+    int a = -1;
+    int b = -1;
 
-            controlla se o->reparto[tipo][i].bloccato == 0 
-            se si, procedi
-            se no, rifai il ciclo con i++
-        
-            per j da 0 a o->reparto[tipo][i]->num_letti
-                controlla se o->reparto[tipo][i].letto[j].occupato == 0
-                se si, esci dal ciclo e salva (i,j)
-                se no, continua
-        
-        Se ho trovato un letto con coordinate (i,j) libero vado a rimuovere il primo paziente dalla coda
-        Infine, occupo il letto se vi era almeno un paziente in coda
+    for(int i=0; i<o->num_reparti[tipo]; i++) { // per ogni reparto dell'ospedale
 
-            int ret = rimuovi_primo_paziente(&o->coda[tipo], tempo_attuale);
-            
-            // non mi basta sapere che c'è un letto libero, ma con "ret" vado anche
-            // a vedere se c'era un paziente in coda da spostare
-            if(ret == 0)    // se c'è stata la rimozione dalla coda
-                occupa_letto(&o->reparto[tipo][i].letto[j], tempo_attuale, COVID)
+        if(o->reparto[tipo][i].bloccato == 0) { // valuta solo i reparti non bloccati
+    
+            for(int j=0; j<o->reparto[tipo][i].num_letti; j++) { // per ogni letto del reparto non bloccato
+                
+                if(o->reparto[tipo][i].letto[j].occupato == 0) { // se il letto è libero allora esci
+                    a = i;
+                    b = j;
+                    goto fine_controllo_letti;
+                }
+                // altrimenti continua a cercare
+            }
+        }
+    }
+    fine_controllo_letti:
 
-        Se non c'era un letto libero allora esco
-    */
+    // se non ho trovato un letto libero allora esco => prova fallita
+    if(a == -1 || b == -1) {
+        return;
+    }
+
+    // se ho un letto libero, rimuovo il primo paziente dalla coda
+    int ret = rimuovi_primo_paziente(&o->coda[tipo], tempo_attuale);
+
+    // solo se un paziente è stato rimosso dalla coda allora posso
+    // occupare un posto letto
+    if(ret == 0)
+        occupa_letto(&o->reparto[tipo][a].letto[b], tempo_attuale, tipo)
 }
 
 void prova_transizione_reparto(_ospedale* o, int id_reparto, int tipo) {
