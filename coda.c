@@ -104,10 +104,34 @@ int rimuovi_primo_paziente(_coda_pr* coda, double tempo_attuale) {
     return 0;
 }
 
+void cambia_priorita_paziente(_coda_pr* coda, int pr_iniziale, int pr_finale, int id_paziente, double tempo_attuale) {
+    /* 
+        cerca il paziente con id "id_paziente" nella coda: coda->testa[pr_iniziale]
+        salva i dati di quel paziente in "paziente* p_tmp"
+        rimuovilo da quella coda con: rimuovi_paziente(...) 
+            in questo modo vengono aggiornate le statistiche di output. 
+            PROBLEMA: invocando rimuovi_paziente(...) viene indicato come fosse morto (num_morti++), quindi si 
+            può passare un flag a quella funzione per fargli capire che è solo uscito e non morto
+
+        
+        genera un nuovo paziente: paziente* p_finale = genera_paziente(...)
+        forza il paziente ad avere dei dati coerenti:
+            p_finale->gravita = URGENTE;
+            p_finale->timeout = p_tmp->timeout
+
+        aggiungi p_finale in fondo alla coda: coda->testa[pr_finale]
+        aggiorna le statistiche di output: coda->dati[pr_finale].num_entrati++
+
+        NOTA: possiamo aggiungere delle statistiche di output rilative ai trasferimenti??
+                coda->dati[pr].num_entrati_da_trasferimento
+                coda->dati[pr].num_usciti_da_trasferimento
+    */
+}
+
+
 void calcola_prossimo_arrivo_in_coda(_coda_pr* coda, double tempo_attuale) {
     coda->prossimo_arrivo = tempo_attuale + ottieni_prossimo_arrivo_in_coda(coda->tasso_arrivo);
 }
-
 
 #ifdef TEST
 void main()

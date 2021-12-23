@@ -21,9 +21,10 @@ typedef struct paziente {
 
     double timeout;             /* tempo nel quale il paziente muore nella coda.
                                    La rapidità con cui un paziente si aggrava
-                                   è funzione di gravità e timeout*/
+                                   è funzione di gravità e timeout */
     double ingresso;            // tempo nel quale il paziente è entrato nella coda
-    
+    double aggravamento;        /* tempo nel quale il paziente si aggrava e deve cambiare coda
+                                   se il paziente è già grave allora questo tempo vale INF */
     struct paziente* next;      // prossimo paziente nella coda
 } paziente;
 
@@ -50,7 +51,7 @@ int ottieni_classe_eta_paziente() {
 
 double ottieni_gravita_paziente(double ttl) {
 
-    if(ttl < SOGLIA_GRAVITA)
+    if(ttl <= SOGLIA_GRAVITA)
         return URGENTE;
     else
         return SOSTENIBILE;
@@ -65,8 +66,14 @@ paziente* genera_paziente(double tempo_attuale, int tipo) {
     p->classe_eta = ottieni_classe_eta_paziente();
     p->ingresso = tempo_attuale;
     p->timeout = tempo_attuale + ottieni_timeout_paziente(tipo);
-    p->gravita = ottieni_gravita_paziente(p->timeout - tempo_attuale);
+    p->gravita = ottieni_gravita_paziente(p->timeout - p->ingresso);
     p->next = NULL;
+
+    if(p->gravita == URGENTE)
+        p->aggravamento = INF; // non esiste il momento in cui il paziente si aggrava poichè è già urgente
+    else if(p->gravita == SOSTENIBILE) {
+        p->aggravamento = p->timeout - SOGLIA_GRAVITA;
+    }
 
     next_id++;
 

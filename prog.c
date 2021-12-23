@@ -16,6 +16,7 @@
 #define ARRIVO 0                  // codice operativo dell'evento "arrivo di un paziente"
 #define COMPLETAMENTO 1           // codice operativo dell'evento "completamento di un paziente"
 #define TIMEOUT 2                 // codice operativo dell'evento "morte di un paziente in coda"
+#define AGGRAVAMENTO 3            // codice operativo dell'evento "aggravamento di un paziente e cambio coda"
 
 // definizione dati per la simulazione
 
@@ -149,6 +150,10 @@ void processa_timeout(descrittore_next_event* ne) {
     // prendi da "ne" la coda in cui è morto il paziente ed il suo numero identificativo
 }
 
+void processa_aggravamento(descrittore_next_event* ne) {
+
+}
+
 void aggiorna_flussi_covid() {
 
     if(tempo_attuale >= prossimo_giorno) {
@@ -233,6 +238,8 @@ int main() {
             processa_completamento(next_event);
         } else if(next_event->evento == TIMEOUT) {
             processa_timeout(next_event);
+        } else if(next_event->evento == AGGRAVAMENTO) {
+            processa_aggravamento(next_event);
         }
 
         // se abilitato, cerca di aggiornare il flusso di entrata nelle code covid
