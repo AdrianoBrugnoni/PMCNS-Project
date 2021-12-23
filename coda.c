@@ -99,8 +99,8 @@ int rimuovi_primo_paziente(_coda_pr* coda, double tempo_attuale) {
     //                  coda->dati[i].num_usciti++;
 
 
-    // return 0 se un paziente è stato rimosso dalla coda
-    // return 1 se non vi erano pazienti in coda
+    // return 0 se un paziente è stato rimosso dalla coda (su un qualsiasi livello di priorità)
+    // return 1 se non vi erano pazienti in coda (per nessun livello di priorità)
     return 0;
 }
 
