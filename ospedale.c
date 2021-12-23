@@ -3,7 +3,7 @@
 
 typedef struct {
     
-    int letti_per_reparto;      // numero di letti per reparto di terapia intensiva
+    int letti_per_reparto;      // numero di letti per reparto di terapia intensiva (uguale per ogni reparto)
     double soglia_aumento;      // valore di soglia per ampliamento reparto covid
     double soglia_riduzione;    // valore di soglia per riduzione reparto covid
     int ampliamento_in_corso;   // 0 = non c'è ampliamento del reparto covid in corso, 1 = viceversa 
@@ -106,37 +106,94 @@ void prova_muovi_paziente_in_letto(_ospedale* o, double tempo_attuale, int tipo)
     // solo se un paziente è stato rimosso dalla coda allora posso
     // occupare un posto letto
     if(ret == 0)
-        occupa_letto(&o->reparto[tipo][a].letto[b], tempo_attuale, tipo)
+        occupa_letto(&o->reparto[tipo][a].letto[b], tempo_attuale, tipo);
+}
+
+int min(int a, int b) {
+    if(a > b)
+        return b;
+    else
+        return a;
 }
 
 void prova_transizione_reparto(_ospedale* o, int id_reparto, int tipo) {
 
-    // se il reparto su cui è avvenuto il completamento era bloccato allora si procede
-    // altrimenti si esce
-
-    // if(o->reparto[tipo][id_reparto].bloccato == 0)
-    //      return
-
-    // fai un ciclo e controlla se il reparto è vuoto
     // reparto[tipo][id_reparto] è il reparto in cui è avvenuto un completamento
-    /*
 
-        controlla se o->reparto[tipo][id_reparto].letto[i].occupato == 0 per ogni i da 0 a [...].num_letti
-        
-        se vero, allora rialloca le vari strutture dati preservando le 
-        loro informazioni e cambiandone la dimensione
-        si procede nel seguente modo:
-            se crea "_reparto** nuovo_reparto" con le dimensioni corrette di reparti covid e non covid
-            si inizializza copiando i dati dei reparti e dei letti vecchi
-            si fa il free di o->reparto e tutte le strutture collegate
-            si fa o->reparto = nuovo_reparto
+    // se il reparto su cui è avvenuto il completamento non è bloccato 
+    // allora si esce: non serve fare la transizione di questo reparto
+    if(o->reparto[tipo][id_reparto].bloccato == 0)
+        return;
 
-        se tipo == COVID allora il reparto deve diventare non covid
-        se tipo == NCOVID allora il reparto deve diventare covid
+    // da adesso in poi so che il reparto: o->reparto[tipo][id_reparto] è bloccato
 
-        // tieni in mente che non si possono avere 0 reparti covid o 0 reparti non covid
-        // vi è un valore di soglia minima per ciascuno di questi
-    */
+    int letti_occupati = 0;
+    for(int i=0; i<o->reparto[tipo][id_reparto].num_letti; i++) // per ogni letto del reparto su cui è avvenuto il completamento
+        letti_occupati += o->reparto[tipo][id_reparto].letto[i].occupato;
+    
+    // se c'è almeno un letto occupato allora non si può fare la transizione
+    if(letti_occupati > 0)
+        return;
+    
+    // si procede con la transizione
+    // si crea una nuovo ospedale.reparto (di tipo _reparto**) a partire da quello iniziale con le opportune modifiche
+
+    int nuovo_num_reparti_covid;
+    int nuovo_num_reparti_normali;
+    _reparto** nuovo_reparto;
+
+    if(tipo == COVID) {
+        nuovo_num_reparti_covid = o->num_reparti[COVID] - 1;
+        nuovo_num_reparti_normali = o->num_reparti[NCOVID] + 1;
+    }
+    else {
+        nuovo_num_reparti_covid = o->num_reparti[COVID] + 1;
+        nuovo_num_reparti_normali = o->num_reparti[NCOVID] - 1;
+    }
+
+    // alloco il nuovo_reparto con le size diverse e inizializzo reparti e letti
+
+    nuovo_reparto = malloc(sizeof(_reparto*) * 2);
+    nuovo_reparto[COVID] = malloc(sizeof(_reparto) * nuovo_num_reparti_covid);
+    for(int i=0; i<nuovo_num_reparti_covid; i++)
+        prepara_letti_reparto(&nuovo_reparto[COVID][i], o->letti_per_reparto);
+
+    nuovo_reparto[NCOVID] = malloc(sizeof(_reparto) * nuovo_num_reparti_normali);
+    for(int i=0; i<nuovo_num_reparti_normali; i++)
+        prepara_letti_reparto(&nuovo_reparto[NCOVID][i], o->letti_per_reparto);
+
+    // copio i dati dei vecchi letti dentro i nuovi letti
+
+    int j;
+    for(int tipo_reparto=0; tipo_reparto<2; tipo_reparto++) { // itero per tipo_reparto = COVID e tipo_reparto = NCOVID
+
+        j = 0;
+        for(int i=0; i<o->num_reparti[tipo_reparto]; i++) {
+
+            if(o->reparto[tipo_reparto][i].bloccato == 0) {
+                copia_reparto(&o->reparto[tipo_reparto][i], &nuovo_reparto[tipo_reparto][j]); // sorgente -> destinazione
+                j++;
+            } 
+        }
+    }
+
+    // il reparto COVID o NCOVID sta perdendo un reparto
+    // si aggiungono le statistiche di output dei letti del reparto che sta per essere 
+    // trasferito dentro le statistiche di output dei letti di un qualsiasi altro reparto (il primo)
+    aggiungi_statistiche_reparto(&o->reparto[tipo][id_reparto], &nuovo_reparto[tipo][0]);
+
+
+    // sistemazione strutture dati
+
+    free(o->reparto[COVID]);
+    free(o->reparto[NCOVID]);
+    free(o->reparto);
+
+    o->ampliamento_in_corso = 0;
+    o->riduzione_in_corso = 0;
+    o->num_reparti[COVID] = nuovo_num_reparti_covid;
+    o->num_reparti[NCOVID] = nuovo_num_reparti_normali;
+    o->reparto = nuovo_reparto;
 }
 
 int ottieni_reparto_piu_veloce_da_smaltire(_ospedale* o, int tipo) {

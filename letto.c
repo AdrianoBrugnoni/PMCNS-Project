@@ -8,7 +8,8 @@ typedef struct {
 
     // output simulazione
     double tempo_occupazione;   // tempo per cui il letto è stato occupato
-    double pazienti_serviti;    // numero di pazienti serviti su questo letto
+    unsigned long num_entrati;  // numero di pazienti entrati su questo letto
+    unsigned long num_usciti;   // numero di pazienti usciti da questo letto
 } _letto;
 
 double ottieni_tempo_servizio_letto(int tipo) {
@@ -24,7 +25,7 @@ void rilascia_paziente(_letto* l) {
     l->ingresso = 0;
     l->servizio = INF;
     l->tempo_occupazione += l->servizio - l->ingresso;
-    l->pazienti_serviti += 1;
+    l->num_usciti += 1;
 }
 
 void prepara_letto(_letto* l) {
@@ -33,7 +34,8 @@ void prepara_letto(_letto* l) {
     l->ingresso = 0;
     l->servizio = INF;
     l->tempo_occupazione = 0;
-    l->pazienti_serviti = 0;
+    l->num_entrati = 0;
+    l->num_usciti = 0;
 }
 
 void occupa_letto(_letto* l, double tempo_attuale, int tipo) {
@@ -41,4 +43,24 @@ void occupa_letto(_letto* l, double tempo_attuale, int tipo) {
     l->occupato = 1;
     l->ingresso = tempo_attuale;
     l->servizio = tempo_attuale + ottieni_tempo_servizio_letto(tipo);
+    l->num_entrati += 1;
+}
+
+void copia_letto(_letto* l_src, _letto* l_dst) {
+
+    l_dst->occupato = l_src->occupato;
+    l_dst->ingresso = l_src->ingresso;
+    l_dst->servizio = l_src->servizio;
+
+    // output simulazione
+    l_dst->tempo_occupazione = l_src->tempo_occupazione;
+    l_dst->num_entrati = l_src->num_entrati;
+    l_dst->num_usciti = l_src->num_usciti;
+}
+
+void aggiungi_statistiche_letto(_letto* l_src, _letto* l_dst) {
+
+    l_dst->tempo_occupazione += l_src->tempo_occupazione;
+    l_dst->num_entrati += l_src->num_entrati;
+    l_dst->num_usciti += l_src->num_usciti;
 }

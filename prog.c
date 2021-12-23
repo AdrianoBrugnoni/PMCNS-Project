@@ -138,16 +138,24 @@ void processa_arrivo(descrittore_next_event* ne) {
 }
 
 void processa_completamento(descrittore_next_event* ne) {
-    // prendi da "ne" il letto da cui è avvenuto il completamento -> Liberalo
-    // per farlo si invoca rilascia_paziente(&ospedale[ne->id_ospedale].reparto_covid[ne->id_reparto].letto[ne->id_letto]);
 
-    // invoca prova_muovi_paziente_in_letto(&ospedale[ne->id_ospedale], ne->tempo_ne, ne->tipo)
-    // in questo modo, si vede se c'è un posto libero dentro un letto ed in caso
-    // si prende il paziente più importante e lo si ci mette
+    _ospedale* ospedale_di_completamento = &ospedale[ne->id_ospedale];
+    _letto* letto_di_completamento = &ospedale[ne->id_ospedale].reparto[ne->tipo][ne->id_reparto].letto[ne->id_letto];
+    double tempo_di_completamento = ne->tempo_ne;
+    int tipo_di_completamento = ne->tipo; // COVID o NCOVID 
+    int id_reparto_completamento = ne->id_reparto;
 
-    // invoca prova_transizione_reparto(&ospedale[ne->id_ospedale], ne->id_reparto, ne->tipo)
-    // in questo modo, si controlla se il reparto bloccato è vuoto dopo questo completamento
-    // Se cosi fosse, allora allora bisogna rimuovere quel reparto dalle TI normale e metterlo nelle TI covid (o viceversa)
+    rilascia_paziente(letto_di_completamento); // libera il letto su cui è avvenuto il completamento
+
+    // poichè un letto si è liberato, si prova a mandare
+    // un paziente dalla coda verso un letto libero
+
+    prova_muovi_paziente_in_letto(ospedale_di_completamento, tempo_di_completamento, tipo_di_completamento);
+
+    // poichè un letto si è liberato, si prova a controllare se un reparto bloccato 
+    // è anche vuoto. Se fosse vuoto, allora è necessario effettuare la transizione
+
+    prova_transizione_reparto(ospedale_di_completamento, id_reparto_completamento, tipo_di_completamento);
 }
 
 void processa_timeout(descrittore_next_event* ne) {

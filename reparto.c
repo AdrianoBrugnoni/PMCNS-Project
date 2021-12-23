@@ -7,6 +7,19 @@ typedef struct {
                     // 1 == reparto bloccato
 } _reparto;
 
+void copia_reparto(_reparto* r_src, _reparto* r_dst) {
+    // asserisco che hanno lo stesso numero di letti
+
+    for(int i=0; i<r_src->num_letti; i++) // per ogni letto del reparto
+        copia_letto(&r_src->letto[i], &r_dst->letto[i]); // sorgente -> destinazione
+}
+
+void aggiungi_statistiche_reparto(_reparto* r_src, _reparto* r_dst) {
+    // asserisco che hanno lo stesso numero di letti
+
+    for(int i=0; i<r_src->num_letti; i++) // per ogni letto del reparto
+        aggiungi_statistiche_letto(&r_src->letto[i], &r_dst->letto[i]); // sorgente -> destinazione
+}
 
 void prepara_letti_reparto(_reparto* r, int letti_nel_reparto) {
 
@@ -16,19 +29,6 @@ void prepara_letti_reparto(_reparto* r, int letti_nel_reparto) {
     r->letto = malloc(sizeof(_letto) * r->num_letti);
     for(int i=0; i<r->num_letti; i++)
         prepara_letto(&r->letto[i]);
-}
-
-double ottieni_occupazione_reparto(_reparto* r) {
-
-    double occupazione;
-
-    // valuta r->letto[i] per ogni i da 0 a r->num_letti
-    //      conta quanti letti sono occupati (r->letto[i].occupato == 1)
-    //      conta i letti totali
-
-    // calcola l'occupazione
-
-    return occupazione;
 }
 
 double ottieni_tempo_liberazione_reparto(_reparto* r) {
