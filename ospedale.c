@@ -6,6 +6,8 @@ typedef struct {
     int letti_per_reparto;      // numero di letti per reparto di terapia intensiva
     double soglia_aumento;      // valore di soglia per ampliamento reparto covid
     double soglia_riduzione;    // valore di soglia per riduzione reparto covid
+    int ampliamento_in_corso;   // 0 = non c'è ampliamento del reparto covid in corso, 1 = viceversa 
+    int riduzione_in_corso;     // 0 = non c'è ampliamento del reparto non covid in corso, 1 = viceversa 
 
     _coda_pr* coda;             // array di code con priorità per la terapia intensiva
                                 // coda[COVID] e coda[NCOVID]
@@ -36,9 +38,11 @@ void ottieni_prototipo_ospedale_1(_ospedale* o) {
 
     int num_reparti_normali = 8;
     int num_min_reparti_normali = 4;
-    
+
     o->soglia_aumento = 80; 
     o->soglia_riduzione = 50;
+    o->ampliamento_in_corso = 0;
+    o->riduzione_in_corso = 0;
 
     // inizializza code con priorità
 
@@ -126,4 +130,63 @@ void prova_transizione_reparto(_ospedale* o, int id_reparto, int tipo) {
         // tieni in mente che non si possono avere 0 reparti covid o 0 reparti non covid
         // vi è un valore di soglia minima per ciascuno di questi
     */
+}
+
+int ottieni_reparto_piu_veloce_da_smaltire(_ospedale* o, int tipo) {
+
+    double tempo;
+    double tempo_min = INF;
+    double indice_min = 0;
+
+    for(int i=0; i<o->num_reparti[tipo]; i++) { // per ogni reparto covid/ncovid dell'ospedale
+        tempo = ottieni_tempo_liberazione_reparto(&o->reparto[tipo][i]);
+        if(tempo < tempo_min) {
+            tempo_min = tempo;
+            indice_min = i;
+        }
+    }
+
+    return indice_min;
+}
+
+void inizia_riduzione_reparto(_ospedale* o, int tipo) {
+
+    // ottieni indice del reparto COVID/NCOVID più veloce da smaltire e bloccalo
+    int k = ottieni_reparto_piu_veloce_da_smaltire(o, tipo);
+    blocca_reparto(&o->reparto[tipo][k]);
+
+    // segnala ampliamento/riduzione in corso
+    if(tipo == NCOVID)
+        o->ampliamento_in_corso = 1;
+    else // if(tipo == COVID)
+        o->riduzione_in_corso = 1;
+}
+
+void interrompi_riduzione_reparto(_ospedale* o, int tipo) {
+
+    for(int i=0; i<o->num_reparti[tipo]; i++) { // per ogni reparto COVID/NCOVID
+        sblocca_reparto(&o->reparto[tipo][i]);  // sblocca il reparto
+    }
+
+    if(tipo == NCOVID)
+        o->ampliamento_in_corso = 0;
+    else // if(tipo == COVID)
+        o->riduzione_in_corso = 0;
+}
+
+double ottieni_occupazione_reparto_covid(_ospedale* o) {
+
+    int letti_totali = 0;
+    int letti_occupati = 0;
+
+    for(int i=0; i<o->num_reparti[COVID]; i++) { // per ogni reparto covid dell'ospedale
+        for(int j=0; j<o->reparto[COVID][i].num_letti; j++) { // per ogni letto di quel reparto
+            
+            // conta i letti totali ed i letti occupati
+            letti_totali += 1;
+            letti_occupati += o->reparto[COVID][i].letto[j].occupato;
+        }   
+    }
+
+    return (letti_occupati / letti_totali) * 100;
 }

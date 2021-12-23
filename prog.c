@@ -162,16 +162,52 @@ void aggiorna_flussi_covid() {
 
 void controlla_livelli_occupazione() {
 
-    // valuta ospedale[i].reparto[COVID] per ogni ospedale i
-    //    ottieni tasso di occupazione dei letti di quel reparto
-    //    se occupazione è maggiore di ospedale[i].soglia_ampliamento
-    //        cerca reparto k° non covid e bloccalo se ospedale[i].num_reparti_normali > ospedale[i].num_min_reparti_normali
-    //    se occupazione è minore di ospedale[i].soglia_riduzione
-    //        cerca reparto k° covid e bloccalo se ospedale[i].num_reparti_covid > ospedale[i].num_min_reparti_covid
+    for(int i=0; i<num_ospedali; i++) { // per ogni ospedale i
 
-    // per cercare un reparto da bloccare: 
-    // per bloccare reparto: blocca_reparto(&ospedale[i].reparto[COVID][k])
+        // ottieni tasso di occupazione dei letti COVID di quell'ospedale
+        double occupazione_reparto_covid = ottieni_occupazione_reparto_covid(&ospedale[i]);
 
+        // se non ci sono ne ampliamenti ne riduzioni in corso per il reparto covid
+        if(ospedale[i].ampliamento_in_corso == 0 && ospedale[i].riduzione_in_corso == 0) {  
+
+            if(occupazione_reparto_covid > ospedale[i].soglia_aumento && 
+                ospedale[i].num_reparti[NCOVID] > ospedale[i].num_min_reparti[NCOVID]) { // se ci sono le condizioni per ampliare reparto covid
+
+                inizia_riduzione_reparto(&ospedale[i], NCOVID);
+            }
+
+            if(occupazione_reparto_covid < ospedale[i].soglia_riduzione && 
+                ospedale[i].num_reparti[COVID] > ospedale[i].num_min_reparti[COVID]) {  // se ci sono le condizioni per ridurre reparto covid
+
+                inizia_riduzione_reparto(&ospedale[i], COVID);
+            }
+
+        // se c'è un ampliamento reparto covid in corso
+        } else if(ospedale[i].ampliamento_in_corso == 1) {
+
+            if(occupazione_reparto_covid < ospedale[i].soglia_riduzione) {
+
+                interrompi_riduzione_reparto(&ospedale[i], NCOVID);
+
+                if(ospedale[i].num_reparti[COVID] > ospedale[i].num_min_reparti[COVID]) {
+                    inizia_riduzione_reparto(&ospedale[i], COVID);
+                }
+            }
+
+        // se c'è una riduzione reparto covid in corso
+        } else if(ospedale[i].riduzione_in_corso == 1) {
+
+            if(occupazione_reparto_covid > ospedale[i].soglia_aumento) {
+
+                interrompi_riduzione_reparto(&ospedale[i], COVID);
+
+                if(ospedale[i].num_reparti[NCOVID] > ospedale[i].num_min_reparti[NCOVID]) {
+                    inizia_riduzione_reparto(&ospedale[i], NCOVID);
+                }
+            } 
+        }
+
+    }
 }
 
 void genera_output() {
@@ -204,14 +240,11 @@ int main() {
         aggiorna_flussi_covid();
         #endif
 
-        // se abilitato, controlla 
+        // se abilitato, controlla i livello di occupazioni degli ospedali
+        // decidi se deve esserci un ampliamento o una riduzione del reparto covid in funzione dell'occupazione
         #ifdef TERAPIE_VARIABILI
         controlla_livelli_occupazione();
         #endif
-        // se abilitato, controlla se le percentuali di utilizzazione di un ospedale hanno
-        // raggiunto il valore di soglia in modo da bloccare un reparto. Se vi è già un reparto vuoto allora si fa la transformazione,
-        // altrimenti si blocca solamente e si trasforma il reparto dentro la funzione processa_completamento()
-        // Inotre, si potrebbe sbloccare un reparto se la percentuale di utilizzo risale o riscende senza fare la trasformazione
 
         tempo_attuale = next_event->tempo_ne;  // manda avanti il tempo della simulazione
     }

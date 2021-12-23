@@ -31,6 +31,27 @@ double ottieni_occupazione_reparto(_reparto* r) {
     return occupazione;
 }
 
+double ottieni_tempo_liberazione_reparto(_reparto* r) {
+
+    double max_tempo_liberazione_letto = 0;
+
+    for(int i=0; i<r->num_letti; i++) {    // per ogni letto del reparto
+
+        if(r->letto[i].occupato == 1) { // se il letto è occupato
+            if(r->letto[i].servizio > max_tempo_liberazione_letto)
+                max_tempo_liberazione_letto = r->letto[i].servizio;
+        }      
+    }
+
+    // se almeno un letto è occupato ritorna il massimo tra i tempi di liberazione dei letti
+    // se nessun letto è occupato ritorna 0 
+    return max_tempo_liberazione_letto;
+}
+
 void blocca_reparto(_reparto* r) {
     r->bloccato = 1;
+}
+
+void sblocca_reparto(_reparto* r) {
+    r->bloccato = 0;
 }
