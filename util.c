@@ -25,6 +25,8 @@ int genera_csv(char** colonne,int num_colonne) {
         write(fd, ",", 1);
     }
     write(fd, "\n", 1);
+
+    return 0;
 }
 
 int riempi_csv(char *** elemento, int num_righe, int num_colonne) {
@@ -44,4 +46,5 @@ int riempi_csv(char *** elemento, int num_righe, int num_colonne) {
         write(fd, "\n", 1);
     }
 
+    return 0;
 }
