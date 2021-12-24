@@ -21,7 +21,7 @@ double ottieni_prossimo_arrivo_in_coda(int tasso) {
     return exponential(tasso);
 }
 
-void aggiorno_flusso_covid(_coda_pr* coda, double tempo_attuale) {
+void aggiorna_flusso_covid(_coda_pr* coda, double tempo_attuale) {
 
     if(coda->tipo != COVID)
         return;

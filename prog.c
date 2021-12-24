@@ -228,9 +228,14 @@ void processa_completamento(descrittore_next_event* ne) {
 }
 
 void processa_timeout(descrittore_next_event* ne) {
-    // elimina la persona dalla coda invocando 
-    //    rimuovi_paziente(ospedale[ne->id_ospedale].coda[ne->tipo], ne->id_paziente, ne->id_priorita, ne->tempo_ne)
-    // prendi da "ne" la coda in cui è morto il paziente ed il suo numero identificativo
+
+    _coda_pr* coda_di_timeout = &ospedale[ne->id_ospedale].coda[ne->tipo];
+    int id_paziente = ne->id_paziente;
+    int livello_priorita = ne->id_priorita;
+    int tempo_di_timeout = ne->tempo_ne;
+
+    // elimina la persona dalla coda 
+    rimuovi_paziente(coda_di_timeout, id_paziente, livello_priorita, tempo_di_timeout);    
 }
 
 void processa_aggravamento(descrittore_next_event* ne) {
@@ -243,8 +248,7 @@ void aggiorna_flussi_covid() {
         prossimo_giorno += tick_per_giorno;
 
         // per ogni coda COVID e NCOVID di ogni ospedale invoca:
-        // aggiorno_flusso_covid(&ospedale[i].coda[COVID], tempo_attuale);
-
+        aggiorna_flusso_covid(&ospedale[i].coda[COVID], tempo_attuale);
     }
 }
 
