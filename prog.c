@@ -316,7 +316,7 @@ void genera_output() {
 
     char *v[] = {"colonna1","col2","COLONNA_3"};
     genera_csv((char **) v, 3);
-    riempi_csv();
+  //  riempi_csv();
 
     // metti l'output in un file csv in modo tale da poter estrarne tabelle e grafici
 }

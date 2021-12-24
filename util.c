@@ -29,14 +29,14 @@ int genera_csv(char** colonne,int num_colonne) {
 
 int riempi_csv(char *** elemento, int num_righe, int num_colonne) {
     int fd;
-    int char_index
+    int char_index;
     fd = open("output.csv", O_RDWR | O_APPEND, 0666);
 
     for (int i = 0; i < num_colonne; i++) {
         for (int j = 0; j < num_righe; j++) {
             j = 0;
             while (elemento[i][j][char_index] != '\0') {
-                write(fd, (char*)&colonne[i][j][char_index], 1);
+                write(fd, (char*)&elemento[i][j][char_index], 1);
                 char_index++;
             }
             write(fd, ",", 1);
