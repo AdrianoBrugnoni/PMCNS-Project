@@ -109,13 +109,6 @@ void prova_muovi_paziente_in_letto(_ospedale* o, double tempo_attuale, int tipo)
         occupa_letto(&o->reparto[tipo][a].letto[b], tempo_attuale, tipo);
 }
 
-int min(int a, int b) {
-    if(a > b)
-        return b;
-    else
-        return a;
-}
-
 void prova_transizione_reparto(_ospedale* o, int id_reparto, int tipo) {
 
     // reparto[tipo][id_reparto] è il reparto in cui è avvenuto un completamento

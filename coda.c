@@ -133,9 +133,8 @@ void calcola_prossimo_arrivo_in_coda(_coda_pr* coda, double tempo_attuale) {
     coda->prossimo_arrivo = tempo_attuale + ottieni_prossimo_arrivo_in_coda(coda->tasso_arrivo);
 }
 
-#ifdef TEST
-void main()
-{
+#ifdef TESTCODA
+void main(){
 
 }
 #endif

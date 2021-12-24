@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include "common.h"
 #include "stat.c"     
 #include "paziente.c" // fa uso di commond.h, stat.c, 
@@ -9,6 +12,7 @@
 #include "letto.c"    // fa uso di commond.h, stat.c, 
 #include "reparto.c"  // fa uso di commond.h, letto.c
 #include "ospedale.c" // fa uso di commond.h, reparto.c, coda.c
+#include "util.c"
 
 #define FLUSSO_COVID_VARIABILE
 #define TERAPIE_VARIABILI
@@ -60,11 +64,13 @@ void inizializza_variabili() {
 }
 
 void ottieni_next_event(descrittore_next_event* ne) {
+    int min = -1;
     // cerca l'evento più prossimo tra tutti gli ospedali tra:
     /*
         - il primo paziente che muore in coda (covid e non-covid)
         - il primo paziente che entra in una coda (covid e non-covid)
         - il primo paziente che lascia un letto (covid e non-covid)
+        - il primo paziente che necessita un cambio coda (non-covid)
     */
     // cerco solo eventi che avvengono dopo il tempo attuale
 
@@ -80,6 +86,17 @@ void ottieni_next_event(descrittore_next_event* ne) {
         ne->id_ospedale = i
         ne->tipo = COVID oppure NCODIV
     */
+    for (int i = 0; i < num_ospedali; i++) {
+        for (int t = 0; t < NTYPE; t++) {
+            if (min > ospedale[i].coda[t].prossimo_arrivo){
+                min = ospedale[i].coda[t].prossimo_arrivo;
+                ne->tempo_ne = min;
+                ne->tipo = t;
+                ne->id_ospedale = i;
+                ne->evento = ARRIVO;
+            }
+        }
+    }
 
     // il primo paziente che esce da un letto:
     /*
@@ -97,6 +114,22 @@ void ottieni_next_event(descrittore_next_event* ne) {
         ne->id_letto = k
         ne->tipo = COVID oppure NCODIV
     */
+    for (int i = 0; i < num_ospedali; i++) {
+        for (int t = 0; t < NTYPE; t++) {
+            for (int j = 0; j < ospedale[i].num_reparti[t]; j++) {
+                for (int k = 0; j < ospedale[j].reparto[t][j].num_letti; k++) {
+                    if (ne->tempo_ne > ospedale[i].reparto[t][j].letto[k].servizio) {
+                        ne->tempo_ne = ospedale[i].reparto[t][j].letto[k].servizio;
+                        ne->evento = COMPLETAMENTO;
+                        ne->id_ospedale = i;
+                        ne->id_reparto = j;
+                        ne->id_letto = k;
+                        ne->tipo = t;
+                    }
+                }
+            }
+        }
+    }
 
     // il primo paziente che muore in coda:
     /*
@@ -115,8 +148,44 @@ void ottieni_next_event(descrittore_next_event* ne) {
         ne->id_paziente = paziente->id
         ne->tipo = COVID oppure NCODIV
     */
+    for (int i = 0; i < num_ospedali; i++) {
+        for (int t = 0; t < NTYPE; t++) {
+            for (int pr = 0; pr < ospedale[i].coda[t].livello_pr; pr++) {
+                while (ospedale[i].coda[t].testa[pr] != NULL) {
+                    if (ne->tempo_ne > ospedale[i].coda[t].testa[pr]->timeout) {
+                        ne->tempo_ne = ospedale[i].coda[t].testa[pr]->timeout;
+                        ne->evento = TIMEOUT;
+                        ne->id_ospedale = i;
+                        ne->id_priorita = pr;
+                        ne->id_paziente = ospedale[i].coda[t].testa[pr]->id;
+                        ne->tipo = t;
+                    }
+                    ospedale[i].coda[t].testa[pr] = ospedale[i].coda[t].testa[pr]->next;
+                }
+                   
+            }
+        }
+    }
+    
+    // il primo paziente che si aggrava:
+    for (int i = 0; i < num_ospedali; i++) {
+        for (int t = 0; t < NTYPE; t++) {
+            for (int pr = 0; pr < ospedale[i].coda[t].livello_pr; pr++) {
+                while (ospedale[i].coda[t].testa[pr] != NULL) {
+                    if (ne->tempo_ne > ospedale[i].coda[t].testa[pr]->aggravamento) {
+                        ne->tempo_ne = ospedale[i].coda[t].testa[pr]->aggravamento;
+                        ne->evento = AGGRAVAMENTO;
+                        ne->id_ospedale = i;
+                        ne->id_priorita = pr;
+                        ne->id_paziente = ospedale[i].coda[t].testa[pr]->id;
+                        ne->tipo = t;
+                    }
+                    ospedale[i].coda[t].testa[pr] = ospedale[i].coda[t].testa[pr]->next;
+                }
 
-    ne->evento = ARRIVO; 
+            }
+        }
+    }
 
     return;
 }
@@ -233,9 +302,31 @@ void genera_output() {
     // somma i dati di tutti i letti e di tutte le code per ogni ospedale
     // mostra i valori medi della simulazione per ogni ospedale e nel complesso tra gli ospedali
 
+    for (int i = 0; i < num_ospedali; i++) {
+        for (int t = 0; t < NTYPE; t++) {
+            for (int j = 0; j < ospedale[i].num_reparti[t]; j++) {
+
+                for (int l = 0; l < NTYPE; l++) {
+                   // ospedale[i].reparto[t][j].letto[l].tempo_occupazione
+                }
+            }
+        }
+    }
+
+
+    char *v[] = {"colonna1","col2","COLONNA_3"};
+    genera_csv((char **) v, 3);
+    riempi_csv();
+
     // metti l'output in un file csv in modo tale da poter estrarne tabelle e grafici
 }
 
+#ifdef TEST
+int main() {
+    genera_output();
+}
+
+#else
 int main() {
 
     inizializza_variabili();
@@ -273,3 +364,7 @@ int main() {
     genera_output();
 
 }
+#endif
+
+
+

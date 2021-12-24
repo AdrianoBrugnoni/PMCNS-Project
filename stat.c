@@ -1,4 +1,6 @@
-/*PMMLCG Lehmer Generator*/
+/*PMMLCG Lehmer Generator
+Compilare con "-lm";
+*/
 
 #include <stdio.h>
 #include <time.h>
@@ -97,7 +99,7 @@ double uniform(double a, double b) {
     return (a + (b - a) * Random());
 }
 
-#ifdef TEST
+#ifdef TESTSTAT
 void main() {
     PlantSeeds(112233445);
     SelectStream(2);

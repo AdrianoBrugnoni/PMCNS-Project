@@ -4,3 +4,5 @@ prog
 .DS_Store
 *.exe
 *.sqlite
+*.out
+*.csv
