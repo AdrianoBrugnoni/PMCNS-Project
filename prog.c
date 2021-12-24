@@ -242,6 +242,13 @@ void processa_timeout(descrittore_next_event* ne) {
 
 void processa_aggravamento(descrittore_next_event* ne) {
 
+    _coda_pr* coda_di_aggravamento = &ospedale[ne->id_ospedale].coda[ne->tipo];
+    int pr_iniziale = ne->id_priorita;
+    int pr_finale = pr_iniziale - 1;
+    int id_paziente = ne->id_paziente;
+    int tempo_aggravamento = ne->tempo_ne;
+
+    cambia_priorita_paziente(coda_di_aggravamento, pr_iniziale, pr_finale, id_paziente, tempo_aggravamento);
 }
 
 void aggiorna_flussi_covid(double tempo_attuale) {
