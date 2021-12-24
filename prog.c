@@ -242,13 +242,14 @@ void processa_aggravamento(descrittore_next_event* ne) {
 
 }
 
-void aggiorna_flussi_covid() {
+void aggiorna_flussi_covid(double tempo_attuale) {
 
     if(tempo_attuale >= prossimo_giorno) {
         prossimo_giorno += tick_per_giorno;
 
         // per ogni coda COVID e NCOVID di ogni ospedale invoca:
-        aggiorna_flusso_covid(&ospedale[i].coda[COVID], tempo_attuale);
+        for(int i=0; i<num_ospedali; i++)
+            aggiorna_flusso_covid(&ospedale[i].coda[COVID], tempo_attuale);
     }
 }
 
@@ -341,6 +342,13 @@ int main() {
 
         ottieni_next_event(next_event); 
 
+        // se abilitato, cerca di aggiornare il flusso di entrata 
+        // nelle code covid in funzione del giorno attuale
+        #ifdef FLUSSO_COVID_VARIABILE
+        aggiorna_flussi_covid(next_event->tempo_ne);
+        #endif
+
+        // gestisci eventi
         if(next_event->evento == ARRIVO) {
             processa_arrivo(next_event);
         } else if(next_event->evento == COMPLETAMENTO) {
@@ -350,11 +358,6 @@ int main() {
         } else if(next_event->evento == AGGRAVAMENTO) {
             processa_aggravamento(next_event);
         }
-
-        // se abilitato, cerca di aggiornare il flusso di entrata nelle code covid
-        #ifdef FLUSSO_COVID_VARIABILE
-        aggiorna_flussi_covid();
-        #endif
 
         // se abilitato, controlla i livello di occupazioni degli ospedali
         // decidi se deve esserci un ampliamento o una riduzione del reparto covid in funzione dell'occupazione
@@ -366,7 +369,6 @@ int main() {
     }
 
     genera_output();
-
 }
 #endif
 
