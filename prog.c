@@ -151,16 +151,17 @@ void ottieni_next_event(descrittore_next_event* ne) {
     for (int i = 0; i < num_ospedali; i++) {
         for (int t = 0; t < NTYPE; t++) {
             for (int pr = 0; pr < ospedale[i].coda[t].livello_pr; pr++) {
-                while (ospedale[i].coda[t].testa[pr] != NULL) {
-                    if (ne->tempo_ne > ospedale[i].coda[t].testa[pr]->timeout) {
-                        ne->tempo_ne = ospedale[i].coda[t].testa[pr]->timeout;
+                paziente* counter = ospedale[i].coda[t].testa[pr];
+                while (counter != NULL) {
+                    if (ne->tempo_ne > counter->timeout) {
+                        ne->tempo_ne = counter->timeout;
                         ne->evento = TIMEOUT;
                         ne->id_ospedale = i;
                         ne->id_priorita = pr;
-                        ne->id_paziente = ospedale[i].coda[t].testa[pr]->id;
+                        ne->id_paziente = counter->id;
                         ne->tipo = t;
                     }
-                    ospedale[i].coda[t].testa[pr] = ospedale[i].coda[t].testa[pr]->next;
+                    counter = counter->next;
                 }
                    
             }
@@ -171,16 +172,17 @@ void ottieni_next_event(descrittore_next_event* ne) {
     for (int i = 0; i < num_ospedali; i++) {
         for (int t = 0; t < NTYPE; t++) {
             for (int pr = 0; pr < ospedale[i].coda[t].livello_pr; pr++) {
-                while (ospedale[i].coda[t].testa[pr] != NULL) {
-                    if (ne->tempo_ne > ospedale[i].coda[t].testa[pr]->aggravamento) {
-                        ne->tempo_ne = ospedale[i].coda[t].testa[pr]->aggravamento;
+                paziente* counter = ospedale[i].coda[t].testa[pr];
+                while (counter != NULL) {
+                    if (ne->tempo_ne > counter->aggravamento) {
+                        ne->tempo_ne = counter->aggravamento;
                         ne->evento = AGGRAVAMENTO;
                         ne->id_ospedale = i;
                         ne->id_priorita = pr;
-                        ne->id_paziente = ospedale[i].coda[t].testa[pr]->id;
+                        ne->id_paziente = counter->id;
                         ne->tipo = t;
                     }
-                    ospedale[i].coda[t].testa[pr] = ospedale[i].coda[t].testa[pr]->next;
+                    counter = counter->next;
                 }
 
             }
