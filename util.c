@@ -5,6 +5,20 @@ int min(int a, int b) {
         return a;
 }
 
+int tipo_opposto(int tipo) {
+    if(tipo == COVID)
+        return NCOVID;
+    else
+        return COVID;
+}
+
+int tipo_esiste(int tipo) {
+    if(tipo == COVID || tipo == NCOVID)
+        return 0;
+    else
+        return 1;
+}
+
 char int_to_char(int val) {
     return val + '0';
 }

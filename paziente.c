@@ -1,10 +1,7 @@
-#include <stdio.h>
-#include <string.h>
-
 #define PERC_GIOVANI 5          // percentuale pazienti giovani che accedono alla terapia intensiva covid
 #define PERC_MEZZA_ETA 15       // percentuale pazienti di mezza età che accedono alla terapia intensiva covid
 
-#define SOGLIA_GRAVITA 2        // valore soglia di timeout secondo il quale il paziente deve accedere
+#define SOGLIA_GRAVITA 3        // valore soglia di timeout secondo il quale il paziente deve accedere
                                 // urgentemente alla terapia intensiva
 
 #define GIOVANE 0               // tipi di paziente.classe_eta
@@ -28,13 +25,11 @@ typedef struct paziente {
     struct paziente* next;      // prossimo paziente nella coda
 } paziente;
 
-unsigned long next_id = 1;  // id univoco da assegnare al prossimo paziente
+unsigned long next_id = 1;      // id univoco da assegnare al prossimo paziente
+double timeout_paziente[NTYPE]; // tempo medio di timeout in coda per i tipi di pazienti
 
 double ottieni_timeout_paziente(int tipo) {
-    if(tipo == COVID)
-        return exponential(2);
-    else // if(tipo == NCOVID)
-        return exponential(3);
+    return exponential(timeout_paziente[tipo]);
 }
 
 int ottieni_classe_eta_paziente() {

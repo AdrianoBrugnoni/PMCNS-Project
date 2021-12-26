@@ -6,3 +6,4 @@ prog
 *.sqlite
 *.out
 *.csv
+stat

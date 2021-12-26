@@ -7,23 +7,20 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include "common.h"
-#include "stat.c"     
-#include "paziente.c" // fa uso di commond.h, stat.c, 
-#include "coda.c"     // fa uso di common.h, paziente.c
-#include "letto.c"    // fa uso di commond.h, stat.c, 
-#include "reparto.c"  // fa uso di commond.h, letto.c
-#include "ospedale.c" // fa uso di commond.h, reparto.c, coda.c
 #include "util.c"
-
-#define FLUSSO_COVID_VARIABILE
-#define TERAPIE_VARIABILI
+#include "stat.c"     
+#include "paziente.c"
+#include "coda.c"
+#include "letto.c"
+#include "reparto.c"
+#include "ospedale.c"
 
 #define ARRIVO 0                  // codice operativo dell'evento "arrivo di un paziente"
 #define COMPLETAMENTO 1           // codice operativo dell'evento "completamento di un paziente"
 #define TIMEOUT 2                 // codice operativo dell'evento "morte di un paziente in coda"
 #define AGGRAVAMENTO 3            // codice operativo dell'evento "aggravamento di un paziente e cambio coda"
 
-// definizione dati per la simulazione
+// struttura dati che contiene informazioni sul next event
 
 typedef struct {
     int evento;                   // ARRIVO - COMPLETAMENTO - TIMEOUT
@@ -38,10 +35,14 @@ typedef struct {
 
 } descrittore_next_event;
 
+#ifdef SIM_INTERATTIVA
+#include "interattivo.c"  // fa uso di tutte le struct di sopra
+#endif
+
 // variabili globali
 
-int num_ospedali;
-_ospedale* ospedale;
+#define num_ospedali 2
+_ospedale ospedale[num_ospedali];
 
 double tempo_attuale;
 double prossimo_giorno;
@@ -49,15 +50,23 @@ double tick_per_giorno;
 
 void inizializza_variabili() {
 
-    // inizializza ospedali
+    // inizializza generatore numeri casuali
+  
+    PlantSeeds(112233445);
+    SelectStream(2); // opzionale
 
-    num_ospedali = 2;
-    ospedale = malloc(sizeof(ospedale) * num_ospedali);
+    // inizializza ospedali
 
     ottieni_prototipo_ospedale_1(&ospedale[0]);
     ottieni_prototipo_ospedale_1(&ospedale[1]);
 
     // inizializza variabili simulazione
+
+    timeout_paziente[COVID] = 30;
+    timeout_paziente[NCOVID] = 15;
+
+    servizio_paziente[COVID] = 48;
+    servizio_paziente[NCOVID] = 30;
 
     tempo_attuale = START;
     tick_per_giorno = 24;
@@ -65,60 +74,26 @@ void inizializza_variabili() {
 }
 
 void ottieni_next_event(descrittore_next_event* ne) {
-    int min = -1;
-    // cerca l'evento più prossimo tra tutti gli ospedali tra:
-    /*
-        - il primo paziente che muore in coda (covid e non-covid)
-        - il primo paziente che entra in una coda (covid e non-covid)
-        - il primo paziente che lascia un letto (covid e non-covid)
-        - il primo paziente che necessita un cambio coda (non-covid)
-    */
-    // cerco solo eventi che avvengono dopo il tempo attuale
 
-    // il primo paziente che entra in una coda:
-    /*
-        per ogni ospedale i da 0 a num_ospedali
-            per tipo = COVID e tipo = NCOVID (0 e 1)
-                cerca il minimo di: ospedale[i].coda[tipo].prossimo_arrivo
-    
-        // scrive in ne i dati
-        ne->tempo_ne = ospedale[i].coda[tipo].prossimo_arrivo
-        ne->evento = ARRIVO
-        ne->id_ospedale = i
-        ne->tipo = COVID oppure NCODIV
-    */
+    ne->tempo_ne = INF;
+
+    // cerca il più prossimo paziente che entra in una coda
     for (int i = 0; i < num_ospedali; i++) {
-        for (int t = 0; t < NTYPE; t++) {
-            if (min > ospedale[i].coda[t].prossimo_arrivo){
-                min = ospedale[i].coda[t].prossimo_arrivo;
-                ne->tempo_ne = min;
+        for (int t = 0; t < NTYPE; t++) {            
+            if (ne->tempo_ne > ospedale[i].coda[t].prossimo_arrivo) {
+                ne->tempo_ne = ospedale[i].coda[t].prossimo_arrivo;
                 ne->tipo = t;
                 ne->id_ospedale = i;
                 ne->evento = ARRIVO;
             }
         }
     }
-
-    // il primo paziente che esce da un letto:
-    /*
-        per ogni ospedale i da 0 a num_ospedali
-            per tipo = COVID e tipo = NCOVID (0 e 1)
-                per ogni reparto j da 0 a ospedale[i].num_reparti[tipo]
-                    per ogni letto k da 0 a ospedale[i].reparto[tipo][j].num_letti
-                        cerca il minimo di: ospedale[i].reparto[tipo][j].letto[k].servizio
-          
-        // scrive in ne i dati
-        ne->tempo_ne = ospedale[i].reparto[tipo][j].letto[k].servizio
-        ne->evento = COMPLETAMENTO
-        ne->id_ospedale = i
-        ne->id_reparto = j
-        ne->id_letto = k
-        ne->tipo = COVID oppure NCODIV
-    */
+  
+    // cerca il più prossimo paziente che esce da un letto
     for (int i = 0; i < num_ospedali; i++) {
         for (int t = 0; t < NTYPE; t++) {
             for (int j = 0; j < ospedale[i].num_reparti[t]; j++) {
-                for (int k = 0; j < ospedale[j].reparto[t][j].num_letti; k++) {
+                for (int k = 0; k < ospedale[i].reparto[t][j].num_letti; k++) {
                     if (ne->tempo_ne > ospedale[i].reparto[t][j].letto[k].servizio) {
                         ne->tempo_ne = ospedale[i].reparto[t][j].letto[k].servizio;
                         ne->evento = COMPLETAMENTO;
@@ -131,24 +106,8 @@ void ottieni_next_event(descrittore_next_event* ne) {
             }
         }
     }
-
-    // il primo paziente che muore in coda:
-    /*
-        per ogni ospedale i da 0 a num_ospedali, cerca il minimo tra
-            per tipo = COVID e tipo = NCOVID (0 e 1)
-                per ogni coda priorita pr da 0 a ospedale[i].coda[tipo].livello_pr
-                    paziente = ospedale[i].coda[tipo].testa[pr]
-                    per ogni paziente nella lista (paziente = paziente->next)
-                        cerco il minimo di: paziente->timeout
-                
-        // scrive in ne i dati
-        ne->tempo_ne = paziente->timeout
-        ne->evento = TIMEOUT
-        ne->id_ospedale = i
-        ne->id_priorita = pr
-        ne->id_paziente = paziente->id
-        ne->tipo = COVID oppure NCODIV
-    */
+    
+    // cerca il più prossimo paziente che muore in attesa in coda
     for (int i = 0; i < num_ospedali; i++) {
         for (int t = 0; t < NTYPE; t++) {
             for (int pr = 0; pr < ospedale[i].coda[t].livello_pr; pr++) {
@@ -169,7 +128,7 @@ void ottieni_next_event(descrittore_next_event* ne) {
         }
     }
     
-    // il primo paziente che si aggrava:
+    // cerca il più prossimo che si aggrava
     for (int i = 0; i < num_ospedali; i++) {
         for (int t = 0; t < NTYPE; t++) {
             for (int pr = 0; pr < ospedale[i].coda[t].livello_pr; pr++) {
@@ -189,8 +148,6 @@ void ottieni_next_event(descrittore_next_event* ne) {
             }
         }
     }
-
-    return;
 }
 
 void processa_arrivo(descrittore_next_event* ne) {
@@ -206,7 +163,7 @@ void processa_arrivo(descrittore_next_event* ne) {
     // poichè un nuovo paziente è entrata in coda, si controlla 
     // se c'è modo di muovere un paziente in un letto libero
 
-    prova_muovi_paziente_in_letto(ospedale_di_arrivo, tempo_di_arrivo, tipo_di_arrivo);
+    prova_muovi_paziente_in_letto(ospedale_di_arrivo, tempo_di_arrivo, tipo_di_arrivo, 0);
 }
 
 void processa_completamento(descrittore_next_event* ne) {
@@ -215,19 +172,10 @@ void processa_completamento(descrittore_next_event* ne) {
     _letto* letto_di_completamento = &ospedale[ne->id_ospedale].reparto[ne->tipo][ne->id_reparto].letto[ne->id_letto];
     double tempo_di_completamento = ne->tempo_ne;
     int tipo_di_completamento = ne->tipo; // COVID o NCOVID 
-    int id_reparto_completamento = ne->id_reparto;
 
-    rilascia_paziente(letto_di_completamento); // libera il letto su cui è avvenuto il completamento
+    // gestisci l'operazione del rilascio di un paziente
 
-    // poichè un letto si è liberato, si prova a mandare
-    // un paziente dalla coda verso un letto libero
-
-    prova_muovi_paziente_in_letto(ospedale_di_completamento, tempo_di_completamento, tipo_di_completamento);
-
-    // poichè un letto si è liberato, si prova a controllare se un reparto bloccato 
-    // è anche vuoto. Se fosse vuoto, allora è necessario effettuare la transizione
-
-    prova_transizione_reparto(ospedale_di_completamento, id_reparto_completamento, tipo_di_completamento);
+    rilascia_paziente(ospedale_di_completamento, letto_di_completamento, tempo_di_completamento, tipo_di_completamento);
 }
 
 void processa_timeout(descrittore_next_event* ne) {
@@ -260,56 +208,6 @@ void aggiorna_flussi_covid(double tempo_attuale) {
         // per ogni coda COVID e NCOVID di ogni ospedale invoca:
         for(int i=0; i<num_ospedali; i++)
             aggiorna_flusso_covid(&ospedale[i].coda[COVID], tempo_attuale);
-    }
-}
-
-void controlla_livelli_occupazione() {
-
-    for(int i=0; i<num_ospedali; i++) { // per ogni ospedale i
-
-        // ottieni tasso di occupazione dei letti COVID di quell'ospedale
-        double occupazione_reparto_covid = ottieni_occupazione_reparto_covid(&ospedale[i]);
-
-        // se non ci sono ne ampliamenti ne riduzioni in corso per il reparto covid
-        if(ospedale[i].ampliamento_in_corso == 0 && ospedale[i].riduzione_in_corso == 0) {  
-
-            if(occupazione_reparto_covid > ospedale[i].soglia_aumento && 
-                ospedale[i].num_reparti[NCOVID] > ospedale[i].num_min_reparti[NCOVID]) { // se ci sono le condizioni per ampliare reparto covid
-
-                inizia_riduzione_reparto(&ospedale[i], NCOVID);
-            }
-
-            if(occupazione_reparto_covid < ospedale[i].soglia_riduzione && 
-                ospedale[i].num_reparti[COVID] > ospedale[i].num_min_reparti[COVID]) {  // se ci sono le condizioni per ridurre reparto covid
-
-                inizia_riduzione_reparto(&ospedale[i], COVID);
-            }
-
-        // se c'è un ampliamento reparto covid in corso
-        } else if(ospedale[i].ampliamento_in_corso == 1) {
-
-            if(occupazione_reparto_covid < ospedale[i].soglia_riduzione) {
-
-                interrompi_riduzione_reparto(&ospedale[i], NCOVID);
-
-                if(ospedale[i].num_reparti[COVID] > ospedale[i].num_min_reparti[COVID]) {
-                    inizia_riduzione_reparto(&ospedale[i], COVID);
-                }
-            }
-
-        // se c'è una riduzione reparto covid in corso
-        } else if(ospedale[i].riduzione_in_corso == 1) {
-
-            if(occupazione_reparto_covid > ospedale[i].soglia_aumento) {
-
-                interrompi_riduzione_reparto(&ospedale[i], COVID);
-
-                if(ospedale[i].num_reparti[NCOVID] > ospedale[i].num_min_reparti[NCOVID]) {
-                    inizia_riduzione_reparto(&ospedale[i], NCOVID);
-                }
-            } 
-        }
-
     }
 }
 
@@ -352,6 +250,16 @@ int main() {
 
         ottieni_next_event(next_event); 
 
+        // se abilitato, ferma la simulazione, mostra lo stato 
+        // degli ospedali ed il prossimo evento. Mettiti in attesa
+        // del carattere "invio" prima di processare il next event
+        #ifdef SIM_INTERATTIVA
+        if(next_event->tempo_ne >= END)
+            step_simulazione(ospedale, num_ospedali, tempo_attuale, next_event, 0);
+        else
+            step_simulazione(ospedale, num_ospedali, tempo_attuale, next_event, 1);
+        #endif
+
         // se abilitato, cerca di aggiornare il flusso di entrata 
         // nelle code covid in funzione del giorno attuale
         #ifdef FLUSSO_COVID_VARIABILE
@@ -364,16 +272,10 @@ int main() {
         } else if(next_event->evento == COMPLETAMENTO) {
             processa_completamento(next_event);
         } else if(next_event->evento == TIMEOUT) {
-            processa_timeout(next_event);
+        //    processa_timeout(next_event);
         } else if(next_event->evento == AGGRAVAMENTO) {
-            processa_aggravamento(next_event);
+        //    processa_aggravamento(next_event);
         }
-
-        // se abilitato, controlla i livello di occupazioni degli ospedali
-        // decidi se deve esserci un ampliamento o una riduzione del reparto covid in funzione dell'occupazione
-        #ifdef TERAPIE_VARIABILI
-        controlla_livelli_occupazione();
-        #endif
 
         tempo_attuale = next_event->tempo_ne;  // manda avanti il tempo della simulazione
     }

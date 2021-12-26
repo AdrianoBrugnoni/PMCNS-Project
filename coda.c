@@ -1,5 +1,4 @@
-#include <stdio.h>
-#include <string.h>
+#define MAX_PR 3
 
 typedef struct {
     unsigned long num_entrati;
@@ -13,11 +12,11 @@ typedef struct {
     double tasso_arrivo;    // tasso di arrivo alla coda
     double prossimo_arrivo; // il tempo in cui avverrà il prossimo arrivo in coda
     int livello_pr;         // numero di code con priorità presenti nella coda
-    paziente** testa;       // array di teste delle code con priorità
-    dati_coda* dati;        // array di dati per ogni coda con priorità
+    paziente* testa[MAX_PR];     // array di teste delle code con priorità
+    dati_coda dati[MAX_PR];      // array di dati per ogni coda con priorità
 } _coda_pr;
 
-double ottieni_prossimo_arrivo_in_coda(int tasso) {
+double ottieni_prossimo_arrivo_in_coda(double tasso) {
     return exponential(tasso);
 }
 
@@ -30,14 +29,12 @@ void aggiorna_flusso_covid(_coda_pr* coda, double tempo_attuale) {
     // tempo attuale e dei dati storici analizzati
 }
 
-void inizializza_coda_pr(_coda_pr* coda, int livello_pr, int tasso, int tipo) {
+void inizializza_coda_pr(_coda_pr* coda, int livello_pr, double tasso, int tipo) {
 
     coda->tipo = tipo;
     coda->tasso_arrivo = tasso;
     coda->prossimo_arrivo = START + ottieni_prossimo_arrivo_in_coda(coda->tasso_arrivo);
     coda->livello_pr = livello_pr;
-    coda->dati = malloc(sizeof(dati_coda) * coda->livello_pr);
-    coda->testa = malloc(sizeof(paziente*) * coda->livello_pr);
 
     for(int pr=0; pr<coda->livello_pr; pr++) {
         coda->testa[pr] = NULL;
@@ -46,7 +43,6 @@ void inizializza_coda_pr(_coda_pr* coda, int livello_pr, int tasso, int tipo) {
         coda->dati[pr].num_morti_in_coda = 0;
         coda->dati[pr].tempo_occupazione = 0;
     }
-
 }
 
 void aggiungi_paziente(_coda_pr* coda, double tempo_attuale) {
@@ -104,6 +100,20 @@ int rimuovi_primo_paziente(_coda_pr* coda, double tempo_attuale) {
     return 0;
 }
 
+int numero_elementi_in_coda(_coda_pr* coda, int livello_pr) {
+
+    // conta quante persone ci sono in "coda" per il livello di priorità indicato
+    int num_pazienti = 0;
+
+    paziente* counter = coda->testa[livello_pr];
+    while (counter != NULL) {
+        num_pazienti++;
+        counter = counter->next;
+    }
+
+    return num_pazienti;
+}
+
 void cambia_priorita_paziente(_coda_pr* coda, int pr_iniziale, int pr_finale, int id_paziente, double tempo_attuale) {
     /* 
         cerca il paziente con id "id_paziente" nella coda: coda->testa[pr_iniziale]
@@ -127,7 +137,6 @@ void cambia_priorita_paziente(_coda_pr* coda, int pr_iniziale, int pr_finale, in
                 coda->dati[pr].num_usciti_da_trasferimento
     */
 }
-
 
 void calcola_prossimo_arrivo_in_coda(_coda_pr* coda, double tempo_attuale) {
     coda->prossimo_arrivo = tempo_attuale + ottieni_prossimo_arrivo_in_coda(coda->tasso_arrivo);
