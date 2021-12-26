@@ -6,7 +6,3 @@
 #define NCOVID 1				// Tipo 2
 
 #define NTYPE 2					// Numero tipi
-
-#define FLUSSO_COVID_VARIABILE
-#define TERAPIE_VARIABILI
-#define COPERAZIONE_OSPEDALI

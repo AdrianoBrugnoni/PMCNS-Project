@@ -2,7 +2,9 @@
 Compilare con "-lm";
 */
 
+#include <stdio.h>
 #include <time.h>
+#include <math.h>
 
 #define MOD    2147483647       /*Numero primo di Lehmer.
                                   Periodo di modulo (MOD-1)*/
@@ -98,7 +100,7 @@ double uniform(double a, double b) {
 }
 
 #ifdef TESTSTAT
-void main() {
+int main() {
     PlantSeeds(112233445);
     SelectStream(2);
     
