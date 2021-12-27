@@ -204,6 +204,7 @@ void processa_aggravamento(descrittore_next_event* ne) {
     int id_paziente = ne->id_paziente;
     int tempo_aggravamento = ne->tempo_ne;
 
+    // muovi il paziente su un livello di priorità diverso nella coda
     cambia_priorita_paziente(coda_di_aggravamento, pr_iniziale, pr_finale, id_paziente, tempo_aggravamento);
 }
 
