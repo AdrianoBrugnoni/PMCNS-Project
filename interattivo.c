@@ -60,14 +60,41 @@ int carattere_e_numero(char c) {
         return 1;
 }
 
-void stampa_qualcosa() {
+void stampa_stato_code(_ospedale* ospedale, int num_ospedali) {
 
-    printf("\nciao\nciaociaociao\nciaociao\n\n");
-}
+    for(int i=0; i<num_ospedali; i++) { // per ogni ospedale
 
-void stampa_altro() {
+        // stampa info generali ospedale
 
-    printf("\nhello\nhellohellohello\nhellohello\n\n");
+        printf("\n------------------------------------------");
+        printf("\n--- CODA OSPEDALE %d: ---------------------", i);
+        printf("\n------------------------------------------\n\n");
+
+        // stampa pazienti per ogni coda
+
+        for(int tipo=0; tipo<NTYPE; tipo++) {
+
+            printf("\tCoda %s (media inter: %.0f) - Prossimo arrivo: %f\n", nome_da_tipo(tipo), ospedale[i].coda[tipo].tasso_arrivo, ospedale[i].coda[tipo].prossimo_arrivo);
+
+            for(int pr=0; pr<ospedale[i].coda[tipo].livello_pr; pr++) { // per livello di priorità di una coda (COVID o NCOVID)
+                printf("\t - numero pazienti %s: %d\n", nome_coda(tipo, pr), numero_elementi_in_coda(&ospedale[i].coda[tipo], pr) );
+
+                paziente* c = ospedale[i].coda[tipo].testa[pr];
+                while(c != NULL) {
+
+                    printf("\t\tpaziente %lu (in: %.1f, out: %.1f", c->id, c->ingresso, c->timeout);
+                    if(tipo == NCOVID && pr == 1)
+                        printf(", sw: %.1f)\n", c->aggravamento);
+                    else
+                        printf(")\n");
+
+                    c = c->next;
+                }
+            }
+            printf("\n");
+        }
+    
+    }
 }
 
 void stampa_simulazione_attuale(_ospedale* ospedale, int num_ospedali, double tempo_attuale, descrittore_next_event* next_event) {
@@ -122,7 +149,7 @@ void stampa_simulazione_attuale(_ospedale* ospedale, int num_ospedali, double te
             printf("\t------------------------------------------\n");
         }
 
-        // stampa pazienti in coda e stato code
+        // stampa situazione generale code
 
         for(int tipo=0; tipo<NTYPE; tipo++) {
             
@@ -182,10 +209,8 @@ void step_simulazione(_ospedale* ospedale, int num_ospedali, double tempo_attual
                     tempo_stop = END;
                     return;
                 }
-                else if(comando[0] == 'a')
-                    stampa_qualcosa();
-                else if(comando[0] == 'b')
-                    stampa_altro();
+                else if(comando[0] == 'c')
+                    stampa_stato_code(ospedale, num_ospedali);
                 else if(comando[0] == 's') // ristampa dati evento attuale
                     stampa_simulazione_attuale(ospedale, num_ospedali, tempo_attuale, next_event);
                     

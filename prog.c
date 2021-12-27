@@ -9,7 +9,7 @@
 #include <fcntl.h>
 #include "common.h"
 #include "util.c"
-#include "stat.c"     
+#include "stat.c"
 #include "paziente.c"
 #include "coda.c"
 #include "letto.c"
@@ -52,7 +52,7 @@ double tick_per_giorno;
 void inizializza_variabili() {
 
     // inizializza generatore numeri casuali
-  
+
     PlantSeeds(112233445);
     SelectStream(2); // opzionale
 
@@ -79,7 +79,7 @@ void ottieni_next_event(descrittore_next_event* ne) {
 
     // cerca il prossimo paziente che entra in una coda
     for (int i = 0; i < num_ospedali; i++) {
-        for (int t = 0; t < NTYPE; t++) {            
+        for (int t = 0; t < NTYPE; t++) {
             if (ne->tempo_ne > ospedale[i].coda[t].prossimo_arrivo) {
                 ne->tempo_ne = ospedale[i].coda[t].prossimo_arrivo;
                 ne->tipo = t;
@@ -88,7 +88,7 @@ void ottieni_next_event(descrittore_next_event* ne) {
             }
         }
     }
-  
+
     // cerca il prossimo paziente che esce da un letto
     for (int i = 0; i < num_ospedali; i++) {
         for (int t = 0; t < NTYPE; t++) {
@@ -106,7 +106,7 @@ void ottieni_next_event(descrittore_next_event* ne) {
             }
         }
     }
-    
+
     // cerca il prossimo paziente che muore in attesa in coda
     for (int i = 0; i < num_ospedali; i++) {
         for (int t = 0; t < NTYPE; t++) {
@@ -125,8 +125,8 @@ void ottieni_next_event(descrittore_next_event* ne) {
                 }
             }
         }
-    }
-    
+    }*/
+
     // cerca il prossimo che si aggrava
     for (int i = 0; i < num_ospedali; i++) {
         for (int t = 0; t < NTYPE; t++) {
@@ -145,7 +145,7 @@ void ottieni_next_event(descrittore_next_event* ne) {
                 }
             }
         }
-    }
+    }*/
 }
 
 void processa_arrivo(descrittore_next_event* ne) {
@@ -155,10 +155,15 @@ void processa_arrivo(descrittore_next_event* ne) {
     double tempo_di_arrivo = ne->tempo_ne;
     int tipo_di_arrivo = ne->tipo; // COVID o NCOVID
 
-    aggiungi_paziente(coda_di_arrivo, tempo_di_arrivo); // in questo modo si aggiunge un paziente in coda    
+    #ifdef COPERAZIONE_OSPEDALI
+    // qui si decide se il paziente deve essere trasferito nella coda di un altro
+    // ospedale oppure se può essere inserito nella coda dell'ospedale attuale
+    #endif
+
+    aggiungi_paziente(coda_di_arrivo, tempo_di_arrivo); // in questo modo si aggiunge un paziente in coda
     calcola_prossimo_arrivo_in_coda(coda_di_arrivo, tempo_di_arrivo); // genera il tempo del prossimo arrivo nella coda
 
-    // poichè un nuovo paziente è entrata in coda, si controlla 
+    // poichè un nuovo paziente è entrata in coda, si controlla
     // se c'è modo di muovere un paziente in un letto libero
 
     prova_muovi_paziente_in_letto(ospedale_di_arrivo, tempo_di_arrivo, tipo_di_arrivo, 0);
@@ -169,7 +174,7 @@ void processa_completamento(descrittore_next_event* ne) {
     _ospedale* ospedale_di_completamento = &ospedale[ne->id_ospedale];
     _letto* letto_di_completamento = &ospedale[ne->id_ospedale].reparto[ne->tipo][ne->id_reparto].letto[ne->id_letto];
     double tempo_di_completamento = ne->tempo_ne;
-    int tipo_di_completamento = ne->tipo; // COVID o NCOVID 
+    int tipo_di_completamento = ne->tipo; // COVID o NCOVID
 
     // gestisci l'operazione del rilascio di un paziente
 
@@ -183,8 +188,8 @@ void processa_timeout(descrittore_next_event* ne) {
     int livello_priorita = ne->id_priorita;
     int tempo_di_timeout = ne->tempo_ne;
 
-    // elimina la persona dalla coda 
-    rimuovi_paziente(coda_di_timeout, id_paziente, livello_priorita, tempo_di_timeout);    
+    // elimina la persona dalla coda
+    rimuovi_paziente(coda_di_timeout, id_paziente, livello_priorita, tempo_di_timeout);
 }
 
 void processa_aggravamento(descrittore_next_event* ne) {
@@ -195,6 +200,7 @@ void processa_aggravamento(descrittore_next_event* ne) {
     int id_paziente = ne->id_paziente;
     int tempo_aggravamento = ne->tempo_ne;
 
+    // muovi il paziente su un livello di priorità diverso nella coda
     cambia_priorita_paziente(coda_di_aggravamento, pr_iniziale, pr_finale, id_paziente, tempo_aggravamento);
 }
 
@@ -246,9 +252,9 @@ int main() {
 
     while (tempo_attuale < END) {
 
-        ottieni_next_event(next_event); 
+        ottieni_next_event(next_event);
 
-        // se abilitato, ferma la simulazione, mostra lo stato 
+        // se abilitato, ferma la simulazione, mostra lo stato
         // degli ospedali ed il prossimo evento. Mettiti in attesa
         // del carattere "invio" prima di processare il next event
         #ifdef SIM_INTERATTIVA
@@ -259,7 +265,7 @@ int main() {
         #endif
 
 
-        // se abilitato, cerca di aggiornare il flusso di entrata 
+        // se abilitato, cerca di aggiornare il flusso di entrata
         // nelle code covid in funzione del giorno attuale
         #ifdef FLUSSO_COVID_VARIABILE
         aggiorna_flussi_covid(next_event->tempo_ne);
@@ -271,9 +277,9 @@ int main() {
         } else if(next_event->evento == COMPLETAMENTO) {
             processa_completamento(next_event);
         } else if(next_event->evento == TIMEOUT) {
-        //    processa_timeout(next_event);
+            processa_timeout(next_event);
         } else if(next_event->evento == AGGRAVAMENTO) {
-        //    processa_aggravamento(next_event);
+            processa_aggravamento(next_event);
         }
 
         tempo_attuale = next_event->tempo_ne;  // manda avanti il tempo della simulazione
@@ -282,6 +288,3 @@ int main() {
     genera_output();
 }
 #endif
-
-
-
