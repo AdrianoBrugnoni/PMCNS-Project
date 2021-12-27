@@ -108,6 +108,7 @@ void ottieni_next_event(descrittore_next_event* ne) {
     }
     
     // cerca il più prossimo paziente che muore in attesa in coda
+    /*
     for (int i = 0; i < num_ospedali; i++) {
         for (int t = 0; t < NTYPE; t++) {
             for (int pr = 0; pr < ospedale[i].coda[t].livello_pr; pr++) {
@@ -126,9 +127,10 @@ void ottieni_next_event(descrittore_next_event* ne) {
                    
             }
         }
-    }
+    }*/
     
     // cerca il più prossimo che si aggrava
+    /*
     for (int i = 0; i < num_ospedali; i++) {
         for (int t = 0; t < NTYPE; t++) {
             for (int pr = 0; pr < ospedale[i].coda[t].livello_pr; pr++) {
@@ -147,7 +149,7 @@ void ottieni_next_event(descrittore_next_event* ne) {
 
             }
         }
-    }
+    }*/
 }
 
 void processa_arrivo(descrittore_next_event* ne) {
@@ -156,6 +158,11 @@ void processa_arrivo(descrittore_next_event* ne) {
     _coda_pr* coda_di_arrivo = &ospedale[ne->id_ospedale].coda[ne->tipo];
     double tempo_di_arrivo = ne->tempo_ne;
     int tipo_di_arrivo = ne->tipo; // COVID o NCOVID
+
+    #ifdef COPERAZIONE_OSPEDALI
+    // qui si decide se il paziente deve essere trasferito nella coda di un altro
+    // ospedale oppure se può essere inserito nella coda dell'ospedale attuale
+    #endif
 
     aggiungi_paziente(coda_di_arrivo, tempo_di_arrivo); // in questo modo si aggiunge un paziente in coda    
     calcola_prossimo_arrivo_in_coda(coda_di_arrivo, tempo_di_arrivo); // genera il tempo del prossimo arrivo nella coda
@@ -272,9 +279,9 @@ int main() {
         } else if(next_event->evento == COMPLETAMENTO) {
             processa_completamento(next_event);
         } else if(next_event->evento == TIMEOUT) {
-        //    processa_timeout(next_event);
+            processa_timeout(next_event);
         } else if(next_event->evento == AGGRAVAMENTO) {
-        //    processa_aggravamento(next_event);
+            processa_aggravamento(next_event);
         }
 
         tempo_attuale = next_event->tempo_ne;  // manda avanti il tempo della simulazione

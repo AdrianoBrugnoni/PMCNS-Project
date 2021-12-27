@@ -45,14 +45,26 @@ void inizializza_coda_pr(_coda_pr* coda, int livello_pr, double tasso, int tipo)
     }
 }
 
+void aggiungi_in_coda(paziente** testa, paziente* p) {
+
+    if(*testa == NULL) {
+        *testa = p;
+    } else {
+        paziente* counter = *testa;
+
+        while(counter->next != NULL) {
+            counter = counter->next;
+        }
+        counter->next = p;
+    }
+}
+
 void aggiungi_paziente(_coda_pr* coda, double tempo_attuale) {
 
     // crea un paziente
     paziente* p = genera_paziente(tempo_attuale, coda->tipo);
 
-    // qui il paziente potrebbe essere trasferito in un'altra coda
-
-    // inseriscilo nell'apposito coda
+    // capisci in quale coda va inserito
     int num_coda;
 
     if(coda->livello_pr == 1) // caso simulazione semplificata
@@ -64,12 +76,8 @@ void aggiungi_paziente(_coda_pr* coda, double tempo_attuale) {
             num_coda = p->gravita;
     } 
 
-    paziente* counter = coda->testa[num_coda];
-    while (counter != NULL) {
-        counter = counter->next;
-    }
-    counter = p;
-
+    // aggiungilo in fondo alla coda
+    aggiungi_in_coda(&coda->testa[num_coda], p);
     coda->dati[num_coda].num_entrati++;
 }
 
