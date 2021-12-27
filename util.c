@@ -67,6 +67,7 @@ int genera_csv(char** colonne,int num_colonne) {
 
 int riempi_csv(char *** elemento, int num_righe, int num_colonne) {
     int fd;
+	int ret;
     int char_index;
     fd = open("output.csv", O_RDWR | O_APPEND, 0666);
 
@@ -85,6 +86,7 @@ int riempi_csv(char *** elemento, int num_righe, int num_colonne) {
         }
 		if ((ret = write(fd, "\n", 1)) == -1) {
 			exit(0);
+		}
     }
     return 0;
 }
@@ -217,7 +219,7 @@ int csvnfield(void) {
 
 int estrai_ricoveri_giornata(int giornata) {
 	int index = 0;	
-	FILE* csv = fopen("covid_lazio.csv", "r");
+	FILE* csv = fopen("stat/covid_lazio.csv", "r");
 	csvgetline(csv);	// Skip intestazione
 	while ((line = csvgetline(csv)) != NULL 
 			&& index != giornata)

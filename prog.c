@@ -125,7 +125,7 @@ void ottieni_next_event(descrittore_next_event* ne) {
                 }
             }
         }
-    }*/
+    }
 
     // cerca il prossimo che si aggrava
     for (int i = 0; i < num_ospedali; i++) {
@@ -145,7 +145,7 @@ void ottieni_next_event(descrittore_next_event* ne) {
                 }
             }
         }
-    }*/
+    }
 }
 
 void processa_arrivo(descrittore_next_event* ne) {
