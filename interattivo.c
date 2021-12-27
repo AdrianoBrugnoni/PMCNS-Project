@@ -60,11 +60,6 @@ int carattere_e_numero(char c) {
         return 1;
 }
 
-void stampa_qualcosa() {
-
-    printf("\nciao\nciaociaociao\nciaociao\n\n");
-}
-
 void stampa_stato_code(_ospedale* ospedale, int num_ospedali) {
 
     for(int i=0; i<num_ospedali; i++) { // per ogni ospedale
@@ -211,8 +206,6 @@ void step_simulazione(_ospedale* ospedale, int num_ospedali, double tempo_attual
                     tempo_stop = END;
                     return;
                 }
-                else if(comando[0] == 'a')
-                    stampa_qualcosa();
                 else if(comando[0] == 'c')
                     stampa_stato_code(ospedale, num_ospedali);
                 else if(comando[0] == 's') // ristampa dati evento attuale
