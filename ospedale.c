@@ -30,7 +30,12 @@ void ottieni_prototipo_ospedale_1(_ospedale* o) {
     int numero_code_pr_covid = 3;
     int numero_code_pr_normale = 2;
 
+    #ifdef FLUSSO_COVID_VARIABILE
+    double tasso_arrivo_coda_covid = estrai_tasso_giornata(0);
+    #else
     double tasso_arrivo_coda_covid = 6;
+    #endif
+
     double tasso_arrivo_coda_normale = 12;
 
     int letti_per_reparto = 3;

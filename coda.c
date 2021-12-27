@@ -20,14 +20,23 @@ double ottieni_prossimo_arrivo_in_coda(double tasso) {
     return exponential(tasso);
 }
 
-void aggiorna_flusso_covid(_coda_pr* coda, double tempo_attuale) {
+double estrai_tasso_giornata(int giorno_attuale) {
+    return estrai_ricoveri_giornata(giorno_attuale) / SAMPLINGRATE;
+}
 
+void aggiorna_flusso_covid(_coda_pr* coda, int giorno_attuale) {
+    char* line;
+    double tasso;
     if(coda->tipo != COVID)
         return;
-
-    // cambia coda->tasso_arrivo in funzione del
-    // tempo attuale e dei dati storici analizzati
+    tasso = estrai_tasso_giornata(giorno_attuale);
+    if (tasso != 0)
+        coda->tasso_arrivo = tasso;
+    else
+        coda->tasso_arrivo = INF;
 }
+
+
 
 void inizializza_coda_pr(_coda_pr* coda, int livello_pr, double tasso, int tipo) {
 

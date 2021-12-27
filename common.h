@@ -6,3 +6,5 @@
 #define NCOVID 1				// Tipo 2
 
 #define NTYPE 2					// Numero tipi
+#define NRFIELD 7				// Numero del campo "Nuovi Ricoveri"
+#define SAMPLINGRATE 24.0

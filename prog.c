@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 #include <unistd.h>
 #include <math.h>
 #include <sys/types.h>
@@ -56,9 +57,8 @@ void inizializza_variabili() {
     SelectStream(2); // opzionale
 
     // inizializza ospedali
-
-    ottieni_prototipo_ospedale_1(&ospedale[0]);
-    ottieni_prototipo_ospedale_1(&ospedale[1]);
+    for(int i=0; i< num_ospedali; i++)
+        ottieni_prototipo_ospedale_1(&ospedale[i]);
 
     // inizializza variabili simulazione
 
@@ -77,7 +77,7 @@ void ottieni_next_event(descrittore_next_event* ne) {
 
     ne->tempo_ne = INF;
 
-    // cerca il più prossimo paziente che entra in una coda
+    // cerca il prossimo paziente che entra in una coda
     for (int i = 0; i < num_ospedali; i++) {
         for (int t = 0; t < NTYPE; t++) {            
             if (ne->tempo_ne > ospedale[i].coda[t].prossimo_arrivo) {
@@ -89,7 +89,7 @@ void ottieni_next_event(descrittore_next_event* ne) {
         }
     }
   
-    // cerca il più prossimo paziente che esce da un letto
+    // cerca il prossimo paziente che esce da un letto
     for (int i = 0; i < num_ospedali; i++) {
         for (int t = 0; t < NTYPE; t++) {
             for (int j = 0; j < ospedale[i].num_reparti[t]; j++) {
@@ -107,7 +107,7 @@ void ottieni_next_event(descrittore_next_event* ne) {
         }
     }
     
-    // cerca il più prossimo paziente che muore in attesa in coda
+    // cerca il prossimo paziente che muore in attesa in coda
     for (int i = 0; i < num_ospedali; i++) {
         for (int t = 0; t < NTYPE; t++) {
             for (int pr = 0; pr < ospedale[i].coda[t].livello_pr; pr++) {
@@ -123,12 +123,11 @@ void ottieni_next_event(descrittore_next_event* ne) {
                     }
                     counter = counter->next;
                 }
-                   
             }
         }
     }
     
-    // cerca il più prossimo che si aggrava
+    // cerca il prossimo che si aggrava
     for (int i = 0; i < num_ospedali; i++) {
         for (int t = 0; t < NTYPE; t++) {
             for (int pr = 0; pr < ospedale[i].coda[t].livello_pr; pr++) {
@@ -144,7 +143,6 @@ void ottieni_next_event(descrittore_next_event* ne) {
                     }
                     counter = counter->next;
                 }
-
             }
         }
     }
@@ -207,7 +205,7 @@ void aggiorna_flussi_covid(double tempo_attuale) {
 
         // per ogni coda COVID e NCOVID di ogni ospedale invoca:
         for(int i=0; i<num_ospedali; i++)
-            aggiorna_flusso_covid(&ospedale[i].coda[COVID], tempo_attuale);
+            aggiorna_flusso_covid(&ospedale[i].coda[COVID], (prossimo_giorno/tick_per_giorno)-1);
     }
 }
 
@@ -236,7 +234,7 @@ void genera_output() {
 
 #ifdef TEST
 int main() {
-    genera_output();
+
 }
 
 #else
@@ -259,6 +257,7 @@ int main() {
         else
             step_simulazione(ospedale, num_ospedali, tempo_attuale, next_event, 1);
         #endif
+
 
         // se abilitato, cerca di aggiornare il flusso di entrata 
         // nelle code covid in funzione del giorno attuale

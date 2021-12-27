@@ -70,7 +70,7 @@ void stampa_altro() {
     printf("\nhello\nhellohellohello\nhellohello\n\n");
 }
 
-void stampa_simluazione_attuale(_ospedale* ospedale, int num_ospedali, double tempo_attuale, descrittore_next_event* next_event) {
+void stampa_simulazione_attuale(_ospedale* ospedale, int num_ospedali, double tempo_attuale, descrittore_next_event* next_event) {
 
     for(int i=0; i<num_ospedali; i++) { // per ogni ospedale
 
@@ -125,9 +125,12 @@ void stampa_simluazione_attuale(_ospedale* ospedale, int num_ospedali, double te
         // stampa pazienti in coda e stato code
 
         for(int tipo=0; tipo<NTYPE; tipo++) {
-
-            printf("\tCoda %s (media inter: %.0f) - Prossimo arrivo: %f\n", nome_da_tipo(tipo), ospedale[i].coda[tipo].tasso_arrivo, ospedale[i].coda[tipo].prossimo_arrivo);
-
+            
+            if(ospedale[i].coda[tipo].tasso_arrivo != INF)
+                printf("\tCoda %s (media inter: %.0f) - Prossimo arrivo: %f\n", nome_da_tipo(tipo), ospedale[i].coda[tipo].tasso_arrivo, ospedale[i].coda[tipo].prossimo_arrivo);
+            else
+                printf("\tCoda %s (media inter: 0) - Prossimo arrivo: %f\n", nome_da_tipo(tipo), ospedale[i].coda[tipo].prossimo_arrivo);
+            
             for(int pr=0; pr<ospedale[i].coda[tipo].livello_pr; pr++) { // per livello di priorità di una coda (COVID o NCOVID)
                 printf("\t - numero pazienti %s: %d\n", nome_coda(tipo, pr), numero_elementi_in_coda(&ospedale[i].coda[tipo], pr) );
             }
@@ -153,7 +156,7 @@ void step_simulazione(_ospedale* ospedale, int num_ospedali, double tempo_attual
         return;
     }
 
-    stampa_simluazione_attuale(ospedale, num_ospedali, tempo_attuale, next_event);
+    stampa_simulazione_attuale(ospedale, num_ospedali, tempo_attuale, next_event);
 
     char comando[20];
     char indice = 0;
@@ -184,7 +187,7 @@ void step_simulazione(_ospedale* ospedale, int num_ospedali, double tempo_attual
                 else if(comando[0] == 'b')
                     stampa_altro();
                 else if(comando[0] == 's') // ristampa dati evento attuale
-                    stampa_simluazione_attuale(ospedale, num_ospedali, tempo_attuale, next_event);
+                    stampa_simulazione_attuale(ospedale, num_ospedali, tempo_attuale, next_event);
                     
                 indice = 0;
                 goto preleva_input;
