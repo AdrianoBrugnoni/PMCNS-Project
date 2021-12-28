@@ -84,8 +84,8 @@ void aggiungi_paziente(_coda_pr* coda, double tempo_attuale) {
 }
 
 void rimuovi_paziente(_coda_pr* coda, int id, int pr, double tempo_attuale) {
-    paziente* p = coda->testa[pr];
-    paziente* q = NULL;
+    paziente* p = coda->testa[pr];  // paziente corrente
+    paziente* q = NULL;             // paziente precedente
 
     while (p->id != id && p != NULL) {
         q = p;
@@ -97,6 +97,7 @@ void rimuovi_paziente(_coda_pr* coda, int id, int pr, double tempo_attuale) {
         q->next = p->next;
     coda->dati[pr].tempo_occupazione += tempo_attuale - p->ingresso;    // non valutare nel tempo di occupazione il tempo dei job in timeout
     coda->dati[pr].num_usciti++;
+    coda->dati[pr].num_morti_in_coda++;
     free(p);
 }
 
@@ -131,23 +132,25 @@ int numero_elementi_in_coda(_coda_pr* coda, int livello_pr) {
 }
 
 void cambia_priorita_paziente(_coda_pr* coda, int pr_iniziale, int pr_finale, int id_paziente, double tempo_attuale) {
-    /* 
-        cerca il paziente con id "id_paziente" nella coda: coda->testa[pr_iniziale]
-        salva i dati di quel paziente in "paziente* p_tmp"
-        rimuovilo da quella coda con: rimuovi_paziente(...) 
-            in questo modo vengono aggiornate le statistiche di output. 
-            PROBLEMA: invocando rimuovi_paziente(...) viene indicato come fosse morto (num_morti++), quindi si 
-            può passare un flag a quella funzione per fargli capire che è solo uscito e non morto
+    paziente* p = coda->testa[pr_iniziale]; // paziente corrente
+    paziente* q = NULL;                     // paziente precedente
+    paziente* l = coda->testa[pr_finale];
 
-        
-        genera un nuovo paziente: paziente* p_finale = genera_paziente(...)
-        forza il paziente ad avere dei dati coerenti:
-            p_finale->gravita = URGENTE;
-            p_finale->timeout = p_tmp->timeout
-
-        aggiungi p_finale in fondo alla coda: coda->testa[pr_finale]
-        aggiorna le statistiche di output: coda->dati[pr_finale].num_entrati++
-
+    while (p->id != id && p != NULL) {
+        q = p;
+        p = p->next;
+    } if (p == NULL) {
+        printf("errore cambia_priorita_paziente\n");
+        exit(0);
+    } else {
+        q->next = p->next;
+        p->next = NULL;
+    } while (l->next != NULL) {
+        l = l->next;
+    }
+    l->next = p;
+    coda->dati[pr_finale].num_entrati++;
+    /*
         NOTA: possiamo aggiungere delle statistiche di output rilative ai trasferimenti??
                 coda->dati[pr].num_entrati_da_trasferimento
                 coda->dati[pr].num_usciti_da_trasferimento
