@@ -79,7 +79,8 @@ void ottieni_next_event(descrittore_next_event* ne) {
     // cerca il prossimo paziente che entra in una coda
     for (int i = 0; i < num_ospedali; i++) {
         for (int t = 0; t < NTYPE; t++) {
-            if (ospedale[i].coda[t].tasso_arrivo != 0 && ne->tempo_ne > ospedale[i].coda[t].prossimo_arrivo) {
+            // se il tasso è nullo non avrò alcun arrivo. Controllo da fare per evitare che il next-event sia sempre un arrivo.
+            if (ospedale[i].coda[t].tasso_arrivo != 0 && ne->tempo_ne > ospedale[i].coda[t].prossimo_arrivo) { 
                 ne->tempo_ne = ospedale[i].coda[t].prossimo_arrivo;
                 ne->tipo = t;
                 ne->id_ospedale = i;
