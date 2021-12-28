@@ -1,12 +1,12 @@
 /****Variabili globali csv manager*****/
 enum { NOMEM = -2 };
-static char* line = NULL;  /* caratteri input */
-static char* sline = NULL;  /* copia linea per split */
+static char* line = NULL;		// caratteri input
+static char* sline = NULL;		// copia linea per split
 static int  maxline = 0;
 static char** field = NULL;
 static int  maxfield = 0;
 static int  nfield = 0;
-static char fieldsep[] = ";"; // separatore dei campi
+static char fieldsep[] = ";";	// separatore dei campi
 static char* nextsep(char*);
 static int split(void);
 /*************************************/
@@ -45,7 +45,6 @@ int genera_csv(char** colonne,int num_colonne) {
 	if ((ret = write(fd, "sep=,\n", 6)) == -1) {
 		exit(0);
 	}
-
 #endif
     for (int i = 0; i < num_colonne; i++) {
         char_index = 0;
@@ -219,7 +218,7 @@ int csvnfield(void) {
 
 int estrai_ricoveri_giornata(int giornata) {
 	int index = 0;	
-	FILE* csv = fopen("stat/covid_lazio.csv", "r");
+	FILE* csv = fopen("./stat/covid_lazio.csv", "r");
 	csvgetline(csv);	// Skip intestazione
 	while ((line = csvgetline(csv)) != NULL 
 			&& index != giornata)

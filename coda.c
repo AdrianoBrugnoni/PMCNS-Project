@@ -26,14 +26,9 @@ double estrai_tasso_giornata(int giorno_attuale) {
 
 void aggiorna_flusso_covid(_coda_pr* coda, int giorno_attuale) {
     char* line;
-    double tasso;
     if(coda->tipo != COVID)
         return;
-    tasso = estrai_tasso_giornata(giorno_attuale);
-    if (tasso != 0)
-        coda->tasso_arrivo = tasso;
-    else
-        coda->tasso_arrivo = INF;
+    coda->tasso_arrivo = estrai_tasso_giornata(giorno_attuale);
 }
 
 void inizializza_coda_pr(_coda_pr* coda, int livello_pr, double tasso, int tipo) {
@@ -97,6 +92,7 @@ void rimuovi_paziente(_coda_pr* coda, int id, int pr, double tempo_attuale) {
     //             coda->dati[pr].num_usciti++;
 }
 
+//  non morto
 int rimuovi_primo_paziente(_coda_pr* coda, double tempo_attuale) {
     // si è svuotato un letto e prendo il primo paziente che può usufruire del servizio
 

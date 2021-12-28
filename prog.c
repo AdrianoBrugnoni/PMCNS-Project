@@ -33,7 +33,6 @@ typedef struct {
     int id_priorita;              // indice del livello di priorità della coda su cui è avvenuto l'evento
     int id_paziente;              // id del paziente di cui è avvenuto il timeout in coda
     int tipo;                     // COVID - NCOVID
-
 } descrittore_next_event;
 
 #ifdef SIM_INTERATTIVA
@@ -42,7 +41,7 @@ typedef struct {
 
 // variabili globali
 
-#define num_ospedali 2
+#define num_ospedali 1
 _ospedale ospedale[num_ospedali];
 
 double tempo_attuale;
@@ -80,7 +79,7 @@ void ottieni_next_event(descrittore_next_event* ne) {
     // cerca il prossimo paziente che entra in una coda
     for (int i = 0; i < num_ospedali; i++) {
         for (int t = 0; t < NTYPE; t++) {
-            if (ne->tempo_ne > ospedale[i].coda[t].prossimo_arrivo) {
+            if (ospedale[i].coda[t].tasso_arrivo != 0 && ne->tempo_ne > ospedale[i].coda[t].prossimo_arrivo) {
                 ne->tempo_ne = ospedale[i].coda[t].prossimo_arrivo;
                 ne->tipo = t;
                 ne->id_ospedale = i;
@@ -246,14 +245,10 @@ void genera_output() {
 int main() {
 
 }
-
 #else
 int main() {
-
     inizializza_variabili();
-
     descrittore_next_event* next_event = malloc(sizeof(descrittore_next_event));
-
     while (tempo_attuale < END) {
 
         ottieni_next_event(next_event);
@@ -285,10 +280,8 @@ int main() {
         } else if(next_event->evento == AGGRAVAMENTO) {
             processa_aggravamento(next_event);
         }
-
         tempo_attuale = next_event->tempo_ne;  // manda avanti il tempo della simulazione
     }
-
     genera_output();
 }
 #endif
