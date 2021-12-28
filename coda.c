@@ -36,8 +36,6 @@ void aggiorna_flusso_covid(_coda_pr* coda, int giorno_attuale) {
         coda->tasso_arrivo = INF;
 }
 
-
-
 void inizializza_coda_pr(_coda_pr* coda, int livello_pr, double tasso, int tipo) {
 
     coda->tipo = tipo;
