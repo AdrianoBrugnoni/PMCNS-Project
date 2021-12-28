@@ -209,7 +209,7 @@ void step_simulazione(_ospedale* ospedale, int num_ospedali, double tempo_attual
                     tempo_stop = END;
                     return;
                 }
-                else if(comando[0] == 'c')
+                else if(comando[0] == 'c') // stampa situazione attuale delle code
                     stampa_stato_code(ospedale, num_ospedali);
                 else if(comando[0] == 's') // ristampa dati evento attuale
                     stampa_simulazione_attuale(ospedale, num_ospedali, tempo_attuale, next_event);
