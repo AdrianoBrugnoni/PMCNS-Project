@@ -36,7 +36,7 @@ void ottieni_prototipo_ospedale_1(_ospedale* o) {
     double tasso_arrivo_coda_covid = 6;
     #endif
 
-    double tasso_arrivo_coda_normale = 12;
+    double tasso_arrivo_coda_normale = 5;
 
     int letti_per_reparto = 3;
     
@@ -90,13 +90,9 @@ int prova_transizione_reparto(_ospedale* o, int id_reparto, int tipo, double tem
         return 1;
 
     // da adesso in poi so che il reparto: o->reparto[tipo][id_reparto] è bloccato
-
-    int letti_occupati = 0;
-    for(int i=0; i<o->reparto[tipo][id_reparto].num_letti; i++) // per ogni letto del reparto su cui è avvenuto il completamento
-        letti_occupati += o->reparto[tipo][id_reparto].letto[i].occupato;
     
     // se c'è almeno un letto occupato allora non si può fare la transizione
-    if(letti_occupati > 0)
+    if(letti_occupati_reparto(&o->reparto[tipo][id_reparto]) > 0)
         return 1;
     
     // si procede con la transizione
@@ -193,7 +189,7 @@ int inizia_riduzione_reparto(_ospedale* o, int tipo, double tempo_attuale) {
     else // if(tipo == COVID)
         o->riduzione_in_corso = 1;
 
-    // se al transizione di un reparto va a buon fine
+    // se la transizione di un reparto va a buon fine
     if(prova_transizione_reparto(o, k, tipo, tempo_attuale) == 0) {
         return tipo_opposto(tipo);
     }
@@ -282,20 +278,24 @@ int prova_muovi_paziente_in_letto(_ospedale* o, double tempo_attuale, int tipo, 
     int a = -1;
     int b = -1;
 
+    int k = discrete_uniform(1, o->num_reparti[tipo]) - 1; // estrai l'indice di un reparto casuale
+
     for(int i=0; i<o->num_reparti[tipo]; i++) { // per ogni reparto dell'ospedale
 
-        if(o->reparto[tipo][i].bloccato == 0) { // valuta solo i reparti non bloccati
+        if(o->reparto[tipo][k].bloccato == 0) { // valuta solo i reparti non bloccati
     
-            for(int j=0; j<o->reparto[tipo][i].num_letti; j++) { // per ogni letto del reparto non bloccato
+            for(int j=0; j<o->reparto[tipo][k].num_letti; j++) { // per ogni letto del reparto non bloccato
                 
-                if(o->reparto[tipo][i].letto[j].occupato == 0) { // se il letto è libero allora esci
-                    a = i;
+                if(o->reparto[tipo][k].letto[j].occupato == 0) { // se il letto è libero allora esci
+                    a = k;
                     b = j;
                     goto fine_controllo_letti;
                 }
                 // altrimenti continua a cercare
             }
         }
+
+        k = (k + 1) % o->num_reparti[tipo];
     }
     fine_controllo_letti:
 
@@ -341,6 +341,7 @@ void evento_occupazione_cambiata(_ospedale* o, double tempo_attuale, int tipo) {
 
     int tipo_ampliato;
     int paziente_spostato;
+    int esito_transizione;
 
     prova_ad_ampliare_ancora:
 
@@ -359,5 +360,26 @@ void evento_occupazione_cambiata(_ospedale* o, double tempo_attuale, int tipo) {
             paziente_spostato = prova_muovi_paziente_in_letto(o, tempo_attuale, tipo_ampliato, 1);
         }
         goto prova_ad_ampliare_ancora;
+    // ho valutato i livelli di occupazione senza ampliare alcun reparto
+    // esiste ancora la possibilità che ci sia un reparto bloccato che si è svuotato
+    // in quel caso, è necessario effettuare la transizione del reparto
+    } else {
+
+        for(int i=0; i<o->num_reparti[tipo]; i++) { // per ogni reparto (COVID o NCOVID a seconda di dove è variata l'occupazione)
+
+            esito_transizione = prova_transizione_reparto(o, i, tipo, tempo_attuale); // provo a fare la transizione
+            if(esito_transizione == 0) { // se la transizione è riuscita
+
+                tipo_ampliato = tipo_opposto(tipo);
+                
+                paziente_spostato = 0;
+                // provo a mettere pazienti nei nuovi letti fintanto che c'è modo 
+                while(paziente_spostato == 0) {
+                    paziente_spostato = prova_muovi_paziente_in_letto(o, tempo_attuale, tipo_ampliato, 1);
+                }
+                goto prova_ad_ampliare_ancora;
+            }
+        }
+
     }
 }

@@ -12,6 +12,13 @@ typedef struct {
                     // 1 == reparto bloccato
 } _reparto;
 
+int letti_occupati_reparto(_reparto* r) {
+    int letti_occupati = 0;
+    for(int i=0; i<r->num_letti; i++)
+        letti_occupati += r->letto[i].occupato;
+    return letti_occupati;
+}
+
 void blocca_reparto(_reparto* r) {
     r->bloccato = 1;
 }
