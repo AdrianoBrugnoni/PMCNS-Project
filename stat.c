@@ -99,16 +99,20 @@ double uniform(double a, double b) {
     return (a + (b - a) * Random());
 }
 
+int discrete_uniform(int a, int b) { // return a random integer value in range [a, b]
+    return (int) uniform(a, b+1); // the cast truncates the decimal part
+}
+
 #ifdef TESTSTAT
 int main() {
     PlantSeeds(112233445);
     SelectStream(2);
     
-    printf("Uniform: %f\n", uniform(2, 10));
-    printf("Exponential: %f\n", exponential(2));
-
-    SelectStream(3);
-    printf("Exponential: %f\n", exponential(2));
-    printf("Uniform: %f\n", uniform(2, 10));
+    for(int i=0; i<10; i++) {
+        printf("Exponential: %f\n", exponential(2));
+        printf("Uniform (3, 5): %f\n", uniform(3, 5));
+        printf("Discrete uniform [3, 5]: %d\n", discrete_uniform(3, 5));
+        printf("\n");
+    }
 }
 #endif
