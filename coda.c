@@ -84,31 +84,36 @@ void aggiungi_paziente(_coda_pr* coda, double tempo_attuale) {
 }
 
 void rimuovi_paziente(_coda_pr* coda, int id, int pr, double tempo_attuale) {
-    // il paziente presente in quella coda è morto :(
-    // va rimosso facendo uso del suo id e lo si deve cercare nella
-    // coda con priorità "coda" a livello di priorità indicato da "pr" (coda->testa[pr])
+    paziente* p = coda->testa[pr];
+    paziente* q = NULL;
 
-    // si aggiorna coda->dati[pr].tempo_occupazione += tempo_attuale - paziente_rimosso->ingresso;
-    //             coda->dati[pr].num_usciti++;
+    while (p->id != id && p != NULL) {
+        q = p;
+        p = p->next;
+    } if (p == NULL) {
+        printf("errore rimuovi_paziente\n");
+        exit(0);
+    } else
+        q->next = p->next;
+    coda->dati[pr].tempo_occupazione += tempo_attuale - p->ingresso;    // non valutare nel tempo di occupazione il tempo dei job in timeout
+    coda->dati[pr].num_usciti++;
+    free(p);
 }
 
 //  non morto
 int rimuovi_primo_paziente(_coda_pr* coda, double tempo_attuale) {
-    // si è svuotato un letto e prendo il primo paziente che può usufruire del servizio
-
-    // leggo tutte le code per pr=0; pr<coda->livello_pr; pr++
-    // dalla prima coda che contiene almeno un paziente in testa vado a prelevare quel paziente
-    
-    // rimuovo quel paziente creando una nuova testa
-
-    // aggiorno i dati della coda i° che è stata toccata
-    // in particolare   coda->dati[i].tempo_occupazione += tempo_attuale - paziente_rimosso->ingresso;
-    //                  coda->dati[i].num_usciti++;
-
-
-    // return 0 se un paziente è stato rimosso dalla coda (su un qualsiasi livello di priorità)
-    // return 1 se non vi erano pazienti in coda (per nessun livello di priorità)
-    return 0;
+    paziente* p;
+    for (int pr = 0; pr < coda->livello_pr; pr++) {
+        if (coda->testa[pr] != NULL) {
+            p = coda->testa[pr];
+            coda->testa[pr] = coda->testa[pr]->next;
+            coda->dati[pr].tempo_occupazione += tempo_attuale - p->ingresso;
+            coda->dati[pr].num_usciti++;
+            free(p);
+            return 0;
+        }
+    }
+    return 1;
 }
 
 int numero_elementi_in_coda(_coda_pr* coda, int livello_pr) {
