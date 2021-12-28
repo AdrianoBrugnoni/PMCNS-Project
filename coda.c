@@ -136,7 +136,7 @@ void cambia_priorita_paziente(_coda_pr* coda, int pr_iniziale, int pr_finale, in
     paziente* q = NULL;                     // paziente precedente
     paziente* l = coda->testa[pr_finale];
 
-    while (p->id != id && p != NULL) {
+    while (p->id != id_paziente && p != NULL) {
         q = p;
         p = p->next;
     } if (p == NULL) {
