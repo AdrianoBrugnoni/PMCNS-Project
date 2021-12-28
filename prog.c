@@ -108,6 +108,7 @@ void ottieni_next_event(descrittore_next_event* ne) {
     }
 
     // cerca il prossimo paziente che muore in attesa in coda
+    #ifdef ABILITA_TIMEOUT
     for (int i = 0; i < num_ospedali; i++) {
         for (int t = 0; t < NTYPE; t++) {
             for (int pr = 0; pr < ospedale[i].coda[t].livello_pr; pr++) {
@@ -126,8 +127,10 @@ void ottieni_next_event(descrittore_next_event* ne) {
             }
         }
     }
+    #endif
 
     // cerca il prossimo che si aggrava
+    #ifdef ABILITA_AGGRAVAMENTO
     for (int i = 0; i < num_ospedali; i++) {
         for (int t = 0; t < NTYPE; t++) {
             for (int pr = 0; pr < ospedale[i].coda[t].livello_pr; pr++) {
@@ -146,6 +149,7 @@ void ottieni_next_event(descrittore_next_event* ne) {
             }
         }
     }
+    #endif
 }
 
 void processa_arrivo(descrittore_next_event* ne) {
