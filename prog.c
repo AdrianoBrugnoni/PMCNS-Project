@@ -159,12 +159,13 @@ void processa_arrivo(descrittore_next_event* ne) {
     double tempo_di_arrivo = ne->tempo_ne;
     int tipo_di_arrivo = ne->tipo; // COVID o NCOVID
 
-    #ifdef COPERAZIONE_OSPEDALI
+    #ifdef COOPERAZIONE_OSPEDALI
     // qui si decide se il paziente deve essere trasferito nella coda di un altro
     // ospedale oppure se può essere inserito nella coda dell'ospedale attuale
     #endif
 
-    aggiungi_paziente(coda_di_arrivo, tempo_di_arrivo); // in questo modo si aggiunge un paziente in coda
+    paziente* p = genera_paziente(tempo_di_arrivo, tipo_di_arrivo); // crea un paziente
+    aggiungi_paziente(coda_di_arrivo, p); // in questo modo si aggiunge un paziente in coda
     calcola_prossimo_arrivo_in_coda(coda_di_arrivo, tempo_di_arrivo); // genera il tempo del prossimo arrivo nella coda
 
     // poichè un nuovo paziente è entrata in coda, si controlla

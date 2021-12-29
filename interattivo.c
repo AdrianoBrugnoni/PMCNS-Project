@@ -70,14 +70,31 @@ void stampa_stato_code(_ospedale* ospedale, int num_ospedali) {
         printf("\n--- CODA OSPEDALE %d: ---------------------", i);
         printf("\n------------------------------------------\n\n");
 
-        // stampa pazienti per ogni coda
+        // stampa su ogni coda e su ogni livello di priorità
 
         for(int tipo=0; tipo<NTYPE; tipo++) {
 
             printf("\tCoda %s (media inter: %.0f) - Prossimo arrivo: %f\n", nome_da_tipo(tipo), ospedale[i].coda[tipo].tasso_arrivo, ospedale[i].coda[tipo].prossimo_arrivo);
 
+
             for(int pr=0; pr<ospedale[i].coda[tipo].livello_pr; pr++) { // per livello di priorità di una coda (COVID o NCOVID)
                 printf("\t - numero pazienti %s: %d\n", nome_coda(tipo, pr), numero_elementi_in_coda(&ospedale[i].coda[tipo], pr) );
+
+                // stampa statistiche output per livello priorità della coda
+
+                printf("\t\t# accessi (normali: %lu", ospedale[i].coda[tipo].dati[pr].accessi_normali);
+                printf(", altre code: %lu", ospedale[i].coda[tipo].dati[pr].accessi_altre_code);
+                printf(", altri ospedali: %lu)\n", ospedale[i].coda[tipo].dati[pr].accessi_altri_ospedali);
+
+                printf("\t\t# usciti (serviti: %lu", ospedale[i].coda[tipo].dati[pr].usciti_serviti);
+                printf(", morti: %lu", ospedale[i].coda[tipo].dati[pr].usciti_morti);
+                printf(", aggravati: %lu)\n", ospedale[i].coda[tipo].dati[pr].usciti_aggravati);
+
+                printf("\t\t# permanenza (serviti: %.1f", ospedale[i].coda[tipo].dati[pr].permanenza_serviti);
+                printf(", morti: %.1f", ospedale[i].coda[tipo].dati[pr].permanenza_morti);
+                printf(", aggravati: %.1f)\n", ospedale[i].coda[tipo].dati[pr].permanenza_aggravati);
+
+                // stampa tutti i pazienti in quel livello di priorità della coda
 
                 paziente* c = ospedale[i].coda[tipo].testa[pr];
                 while(c != NULL) {
@@ -172,6 +189,8 @@ void stampa_simulazione_attuale(_ospedale* ospedale, int num_ospedali, double te
         printf("ospedale %d coda %s\n", next_event->id_ospedale, nome_da_tipo(next_event->tipo));
     } else if(next_event->evento == COMPLETAMENTO) {
         printf("ospedale %d, reparto %s %d, letto %d\n", next_event->id_ospedale, nome_da_tipo(next_event->tipo), next_event->id_reparto, next_event->id_letto);
+    } else if(next_event->evento == AGGRAVAMENTO || next_event->evento == TIMEOUT) {
+        printf("ospedale %d, coda %s (id:%d)\n", next_event->id_ospedale, nome_coda(next_event->tipo, next_event->id_priorita), next_event->id_paziente);
     }
     printf("\t\t\ttempo attuale:    %f\n", tempo_attuale);
     printf("\t\t\ttempo next event: %f\n", next_event->tempo_ne);

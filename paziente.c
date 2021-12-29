@@ -64,8 +64,8 @@ paziente* genera_paziente(double tempo_attuale, int tipo) {
     p->gravita = ottieni_gravita_paziente(p->timeout - p->ingresso);
     p->next = NULL;
 
-    if(p->gravita == URGENTE)
-        p->aggravamento = INF; // non esiste il momento in cui il paziente si aggrava poichè è già urgente
+    if(p->gravita == URGENTE || tipo == COVID)
+        p->aggravamento = INF; // non esiste il momento in cui il paziente si aggrava poichè è già urgente (oppure è covid)
     else if(p->gravita == SOSTENIBILE) {
         p->aggravamento = p->timeout - SOGLIA_GRAVITA;
     }

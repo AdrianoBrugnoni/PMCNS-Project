@@ -1,10 +1,18 @@
 #define MAX_PR 3
 
-typedef struct {
-    unsigned long num_entrati;
-    unsigned long num_usciti;
-    unsigned long num_morti_in_coda;
-    unsigned long tempo_occupazione;
+typedef struct {    // dati per un singolo livello di priorità della coda
+
+    unsigned long accessi_normali;          // numero pazienti che accedono alla coda con la modalità classica
+    unsigned long accessi_altre_code;       // numero pazienti che accedono alla coda per via di un aggravamento in un altra coda
+    unsigned long accessi_altri_ospedali;   // numero pazienti che accedono alla coda per trasferimento da un altro ospedale
+
+    unsigned long usciti_serviti;           // numero pazienti che lasciano la coda poichè portati in un letto
+    unsigned long usciti_morti;             // numero pazienti che lasciano la coda poichè morti
+    unsigned long usciti_aggravati;         // numero pazienti che lasciano la coda poichè aggravati e portati a priorità maggiore
+
+    double permanenza_serviti;              // tempo complessivo passato in coda dai pazienti che vengono serviti
+    double permanenza_morti;                // tempo complessivo passato in coda dai pazienti che muoiono
+    double permanenza_aggravati;            // tempo complessivo passato in coda dai pazienti che abbandonano la coda per aggravamento
 } dati_coda;
 
 typedef struct {
@@ -16,8 +24,13 @@ typedef struct {
     dati_coda dati[MAX_PR];      // array di dati per ogni coda con priorità
 } _coda_pr;
 
+
 double ottieni_prossimo_arrivo_in_coda(double tasso) {
     return exponential(tasso);
+}
+
+void calcola_prossimo_arrivo_in_coda(_coda_pr* coda, double tempo_attuale) {
+    coda->prossimo_arrivo = tempo_attuale + ottieni_prossimo_arrivo_in_coda(coda->tasso_arrivo);
 }
 
 double estrai_tasso_giornata(int giorno_attuale) {
@@ -40,81 +53,19 @@ void inizializza_coda_pr(_coda_pr* coda, int livello_pr, double tasso, int tipo)
 
     for(int pr=0; pr<coda->livello_pr; pr++) {
         coda->testa[pr] = NULL;
-        coda->dati[pr].num_entrati = 0;
-        coda->dati[pr].num_usciti = 0;
-        coda->dati[pr].num_morti_in_coda = 0;
-        coda->dati[pr].tempo_occupazione = 0;
+
+        coda->dati[pr].accessi_normali = 0;
+        coda->dati[pr].accessi_altre_code = 0;
+        coda->dati[pr].accessi_altri_ospedali = 0;
+
+        coda->dati[pr].usciti_serviti = 0;
+        coda->dati[pr].usciti_morti = 0;
+        coda->dati[pr].usciti_aggravati = 0;
+
+        coda->dati[pr].permanenza_serviti = 0;
+        coda->dati[pr].permanenza_morti = 0;
+        coda->dati[pr].permanenza_aggravati = 0;
     }
-}
-
-void aggiungi_in_coda(paziente** testa, paziente* p) {
-
-    if(*testa == NULL) {
-        *testa = p;
-    } else {
-        paziente* counter = *testa;
-
-        while(counter->next != NULL) {
-            counter = counter->next;
-        }
-        counter->next = p;
-    }
-}
-
-void aggiungi_paziente(_coda_pr* coda, double tempo_attuale) {
-
-    // crea un paziente
-    paziente* p = genera_paziente(tempo_attuale, coda->tipo);
-
-    // capisci in quale coda va inserito
-    int num_coda;
-
-    if(coda->livello_pr == 1) // caso simulazione semplificata
-        num_coda = 0;
-    else {  // inserisci il paziente nella coda in funzione della sua priorità
-        if(coda->tipo == COVID)
-            num_coda = p->classe_eta;
-        else
-            num_coda = p->gravita;
-    } 
-
-    // aggiungilo in fondo alla coda
-    aggiungi_in_coda(&coda->testa[num_coda], p);
-    coda->dati[num_coda].num_entrati++;
-}
-
-void rimuovi_paziente(_coda_pr* coda, int id, int pr, double tempo_attuale) {
-    paziente* p = coda->testa[pr];  // paziente corrente
-    paziente* q = NULL;             // paziente precedente
-
-    while (p->id != id && p != NULL) {
-        q = p;
-        p = p->next;
-    } if (p == NULL) {
-        printf("errore rimuovi_paziente\n");
-        exit(0);
-    } else
-        q->next = p->next;
-    coda->dati[pr].tempo_occupazione += tempo_attuale - p->ingresso;    // non valutare nel tempo di occupazione il tempo dei job in timeout
-    coda->dati[pr].num_usciti++;
-    coda->dati[pr].num_morti_in_coda++;
-    free(p);
-}
-
-//  non morto
-int rimuovi_primo_paziente(_coda_pr* coda, double tempo_attuale) {
-    paziente* p;
-    for (int pr = 0; pr < coda->livello_pr; pr++) {
-        if (coda->testa[pr] != NULL) {
-            p = coda->testa[pr];
-            coda->testa[pr] = coda->testa[pr]->next;
-            coda->dati[pr].tempo_occupazione += tempo_attuale - p->ingresso;
-            coda->dati[pr].num_usciti++;
-            free(p);
-            return 0;
-        }
-    }
-    return 1;
 }
 
 int numero_elementi_in_coda(_coda_pr* coda, int livello_pr) {
@@ -131,34 +82,118 @@ int numero_elementi_in_coda(_coda_pr* coda, int livello_pr) {
     return num_pazienti;
 }
 
-void cambia_priorita_paziente(_coda_pr* coda, int pr_iniziale, int pr_finale, int id_paziente, double tempo_attuale) {
-    paziente* p = coda->testa[pr_iniziale]; // paziente corrente
-    paziente* q = NULL;                     // paziente precedente
-    paziente* l = coda->testa[pr_finale];
+void aggiungi_in_coda(paziente** testa, paziente* p) {
 
-    while (p->id != id_paziente && p != NULL) {
-        q = p;
-        p = p->next;
-    } if (p == NULL) {
-        printf("errore cambia_priorita_paziente\n");
-        exit(0);
+    if(*testa == NULL) {
+        *testa = p;
     } else {
-        q->next = p->next;
-        p->next = NULL;
-    } while (l->next != NULL) {
-        l = l->next;
+        paziente* counter = *testa;
+
+        while(counter->next != NULL) {
+            counter = counter->next;
+        }
+        counter->next = p;
     }
-    l->next = p;
-    coda->dati[pr_finale].num_entrati++;
-    /*
-        NOTA: possiamo aggiungere delle statistiche di output rilative ai trasferimenti??
-                coda->dati[pr].num_entrati_da_trasferimento
-                coda->dati[pr].num_usciti_da_trasferimento
-    */
 }
 
-void calcola_prossimo_arrivo_in_coda(_coda_pr* coda, double tempo_attuale) {
-    coda->prossimo_arrivo = tempo_attuale + ottieni_prossimo_arrivo_in_coda(coda->tasso_arrivo);
+paziente* rimuovi_per_id(paziente** testa, int id) {
+
+    paziente* p = *testa; // paziente corrente
+    paziente* q = NULL;   // paziente precedente
+
+    if((*testa)->id == id) { // la testa ha l'id che cerchiamo
+        (*testa) = (*testa)->next;
+        p->next = NULL;
+        return p;
+    // asserisco che l'id è presente nella lista, quindi 
+    // la lista deve avere almeno due elementi
+    } else {
+
+        do {
+            q = p;
+            p = p->next;
+            if(p->id == id) {
+                q->next = p->next;
+                p->next = NULL;
+                return p;
+            }
+        }
+        while(p->next != NULL);
+    }
+
+    return NULL;
+}
+
+void aggiungi_paziente(_coda_pr* coda, paziente* p) {
+
+    // capisci in quale coda va inserito
+    int num_coda;
+
+    if(coda->livello_pr == 1) // caso simulazione semplificata
+        num_coda = 0;
+    else {  // inserisci il paziente nella coda in funzione della sua priorità
+        if(coda->tipo == COVID)
+            num_coda = p->classe_eta;
+        else
+            num_coda = p->gravita;
+    } 
+
+    // aggiungilo in fondo alla coda e aggiorna statistiche di output
+    aggiungi_in_coda(&coda->testa[num_coda], p);
+
+    coda->dati[num_coda].accessi_normali++;
+}
+
+void rimuovi_paziente(_coda_pr* coda, int id, int pr, double tempo_attuale) {
+
+    // il paziente con id specificato è morto nella coda
+    paziente* p = rimuovi_per_id(&coda->testa[pr], id);
+    
+    coda->dati[pr].permanenza_morti += tempo_attuale - p->ingresso;
+    coda->dati[pr].usciti_morti++;
+
+    free(p);
+}
+
+int rimuovi_primo_paziente(_coda_pr* coda, double tempo_attuale) {
+    // cerca il paziente con priorità più alta nella coda 
+    // ed eliminalo (poichè verrà spostato dentro il servente)
+    paziente* p;
+    for (int pr = 0; pr < coda->livello_pr; pr++) {
+        if (coda->testa[pr] != NULL) {
+
+            // elimino la testa
+            p = coda->testa[pr];
+            coda->testa[pr] = coda->testa[pr]->next;
+
+            // aggiorno dati output
+            coda->dati[pr].permanenza_serviti += tempo_attuale - p->ingresso;
+            coda->dati[pr].usciti_serviti++;
+            free(p);
+
+            return 0;
+        }
+    }
+    return 1;
+}
+
+void cambia_priorita_paziente(_coda_pr* coda, int pr_iniziale, int pr_finale, int id_paziente, double tempo_attuale) {
+
+    // rimuovi dalla prima coda e aggiorna statistiche di output
+    
+    paziente* p = rimuovi_per_id(&coda->testa[pr_iniziale], id_paziente);
+
+    coda->dati[pr_iniziale].permanenza_aggravati += tempo_attuale - p->ingresso;
+    coda->dati[pr_iniziale].usciti_aggravati++;
+
+    // modifica il paziente, inseriscilo nel nuovo livello di priorità e aggiorna statistiche di output
+
+    p->ingresso = tempo_attuale;
+    p->aggravamento = INF;
+    p->gravita = pr_finale;
+    aggiungi_in_coda(&coda->testa[pr_finale], p);    
+
+    coda->dati[pr_finale].accessi_altre_code++;
 }
 
 #ifdef TESTCODA
