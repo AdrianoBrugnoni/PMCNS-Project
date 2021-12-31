@@ -2,17 +2,17 @@
 
 typedef struct {    // dati per un singolo livello di priorità della coda
 
-    unsigned long accessi_normali;          // numero pazienti che accedono alla coda con la modalità classica
-    unsigned long accessi_altre_code;       // numero pazienti che accedono alla coda per via di un aggravamento in un altra coda
-    unsigned long accessi_altri_ospedali;   // numero pazienti che accedono alla coda per trasferimento da un altro ospedale
+        unsigned long accessi_normali;          // numero pazienti che accedono alla coda con la modalità classica
+        unsigned long accessi_altre_code;       // numero pazienti che accedono alla coda per via di un aggravamento in un'altra coda
+        unsigned long accessi_altri_ospedali;   // numero pazienti che accedono alla coda per trasferimento da un altro ospedale
 
-    unsigned long usciti_serviti;           // numero pazienti che lasciano la coda poichè portati in un letto
-    unsigned long usciti_morti;             // numero pazienti che lasciano la coda poichè morti
-    unsigned long usciti_aggravati;         // numero pazienti che lasciano la coda poichè aggravati e portati a priorità maggiore
+        unsigned long usciti_serviti;           // numero pazienti che lasciano la coda poichè portati in un letto
+        unsigned long usciti_morti;             // numero pazienti che lasciano la coda poichè morti
+        unsigned long usciti_aggravati;         // numero pazienti che lasciano la coda poichè aggravati e portati a priorità maggiore
 
-    double permanenza_serviti;              // tempo complessivo passato in coda dai pazienti che vengono serviti
-    double permanenza_morti;                // tempo complessivo passato in coda dai pazienti che muoiono
-    double permanenza_aggravati;            // tempo complessivo passato in coda dai pazienti che abbandonano la coda per aggravamento
+        double permanenza_serviti;              // tempo complessivo passato in coda dai pazienti che vengono serviti
+        double permanenza_morti;                // tempo complessivo passato in coda dai pazienti che muoiono
+        double permanenza_aggravati;            // tempo complessivo passato in coda dai pazienti che abbandonano la coda per aggravamento
 } dati_coda;
 
 typedef struct {
@@ -105,7 +105,7 @@ paziente* rimuovi_per_id(paziente** testa, int id) {
         (*testa) = (*testa)->next;
         p->next = NULL;
         return p;
-    // asserisco che l'id è presente nella lista, quindi 
+    // asserisco che l'id è presente nella lista, quindi
     // la lista deve avere almeno due elementi
     } else {
 
@@ -136,7 +136,7 @@ void aggiungi_paziente(_coda_pr* coda, paziente* p) {
             num_coda = p->classe_eta;
         else
             num_coda = p->gravita;
-    } 
+    }
 
     // aggiungilo in fondo alla coda e aggiorna statistiche di output
     aggiungi_in_coda(&coda->testa[num_coda], p);
@@ -148,7 +148,7 @@ void rimuovi_paziente(_coda_pr* coda, int id, int pr, double tempo_attuale) {
 
     // il paziente con id specificato è morto nella coda
     paziente* p = rimuovi_per_id(&coda->testa[pr], id);
-    
+
     coda->dati[pr].permanenza_morti += tempo_attuale - p->ingresso;
     coda->dati[pr].usciti_morti++;
 
@@ -156,7 +156,7 @@ void rimuovi_paziente(_coda_pr* coda, int id, int pr, double tempo_attuale) {
 }
 
 int rimuovi_primo_paziente(_coda_pr* coda, double tempo_attuale) {
-    // cerca il paziente con priorità più alta nella coda 
+    // cerca il paziente con priorità più alta nella coda
     // ed eliminalo (poichè verrà spostato dentro il servente)
     paziente* p;
     for (int pr = 0; pr < coda->livello_pr; pr++) {
@@ -180,7 +180,7 @@ int rimuovi_primo_paziente(_coda_pr* coda, double tempo_attuale) {
 void cambia_priorita_paziente(_coda_pr* coda, int pr_iniziale, int pr_finale, int id_paziente, double tempo_attuale) {
 
     // rimuovi dalla prima coda e aggiorna statistiche di output
-    
+
     paziente* p = rimuovi_per_id(&coda->testa[pr_iniziale], id_paziente);
 
     coda->dati[pr_iniziale].permanenza_aggravati += tempo_attuale - p->ingresso;
@@ -191,7 +191,7 @@ void cambia_priorita_paziente(_coda_pr* coda, int pr_iniziale, int pr_finale, in
     p->ingresso = tempo_attuale;
     p->aggravamento = INF;
     p->gravita = pr_finale;
-    aggiungi_in_coda(&coda->testa[pr_finale], p);    
+    aggiungi_in_coda(&coda->testa[pr_finale], p);
 
     coda->dati[pr_finale].accessi_altre_code++;
 }

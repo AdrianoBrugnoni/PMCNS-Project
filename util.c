@@ -6,7 +6,11 @@ static int  maxline = 0;
 static char** field = NULL;
 static int  maxfield = 0;
 static int  nfield = 0;
+#ifdef MSEXEL
+char sep[] = ",";
+#else
 static char fieldsep[] = ";";	// separatore dei campi
+#endif
 static char* nextsep(char*);
 static int split(void);
 /*************************************/
@@ -36,11 +40,24 @@ char int_to_char(int val) {
     return val + '0';
 }
 
-int genera_csv(char** colonne,int num_colonne) {
+char* char_to_string(char c) {
+	char* str = malloc(sizeof(char) * 2);
+	str[0] = c;
+	str[1] = '\0';
+	return str;
+}
+
+char* int_to_string(int val) {
+	char* str = (char*)malloc(sizeof(char) * 12);
+	sprintf(str, "%d", val);
+	return str;
+}
+
+int inizializza_csv(char* nome_csv, char** colonne, int num_colonne) {
     int fd;
     int char_index;
 	int ret;
-    fd = open("output.csv", O_TRUNC|O_RDWR|O_CREAT, 0666);
+    fd = open(nome_csv, O_TRUNC|O_RDWR|O_CREAT, 0666);
 #ifdef MSEXEL
 	if ((ret = write(fd, "sep=,\n", 6)) == -1) {
 		exit(0);
@@ -54,39 +71,34 @@ int genera_csv(char** colonne,int num_colonne) {
 			}
             char_index++;
         }
-		if ((ret = write(fd, ",", 1)) == -1) {
+		if ((ret = write(fd, fieldsep, 1)) == -1) {
 			exit(0);
 		}
     }
 	if ((ret = write(fd, "\n", 1)) == -1) {
 		exit(0);
 	}
-    return 0;
+    return fd;
 }
 
-int riempi_csv(char *** elemento, int num_righe, int num_colonne) {
-    int fd;
+int riempi_csv(int fd, char** elemento, int num_colonne) {
 	int ret;
     int char_index;
-    fd = open("output.csv", O_RDWR | O_APPEND, 0666);
-
-    for (int i = 0; i < num_colonne; i++) {
-        for (int j = 0; j < num_righe; j++) {
-            j = 0;
-            while (elemento[i][j][char_index] != '\0') {
-				if ((ret = write(fd, (char*)&elemento[i][j][char_index], 1)) == -1) {
-					exit(0);
-				}
-                char_index++;
-            }
-			if ((ret = write(fd, ",", 1)) == -1) {
+	for (int i = 0; i < num_colonne; i++) {
+		char_index = 0;
+		while (*(*(elemento + i) + char_index) != '\0') {
+			if ((ret = write(fd, *(elemento + i) + char_index, 1)) == -1) {
 				exit(0);
 			}
-        }
-		if ((ret = write(fd, "\n", 1)) == -1) {
+			char_index++;
+		}
+		if ((ret = write(fd, fieldsep, 1)) == -1) {
 			exit(0);
 		}
-    }
+	}
+	if ((ret = write(fd, "\n", 1)) == -1) {
+		exit(0);
+	}
     return 0;
 }
 

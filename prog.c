@@ -44,6 +44,11 @@ typedef struct {
 #define num_ospedali 1
 _ospedale ospedale[num_ospedali];
 
+int fd_code_globale;
+int fd_reparti_globale;
+int* fd_code[num_ospedali];
+int* fd_reparti[num_ospedali];
+
 double tempo_attuale;
 double prossimo_giorno;
 double tick_per_giorno;
@@ -220,27 +225,135 @@ void aggiorna_flussi_covid(double tempo_attuale) {
     }
 }
 
-void genera_output() {
+void genera_output_globale() {
     // somma i dati di tutti i letti e di tutte le code per ogni ospedale
     // mostra i valori medi della simulazione per ogni ospedale e nel complesso tra gli ospedali
-
+    
+    
+    /*
+    int dati_letti_ospedale[num_ospedali] = 0;
+    int dati_code_ospedale[num_ospedali] = 0;
     for (int i = 0; i < num_ospedali; i++) {
         for (int t = 0; t < NTYPE; t++) {
             for (int j = 0; j < ospedale[i].num_reparti[t]; j++) {
-
-                for (int l = 0; l < NTYPE; l++) {
-                   // ospedale[i].reparto[t][j].letto[l].tempo_occupazione
+                for (int l = 0; l < ospedale[i].reparto[t][j].num_letti; l++) {
+                    dati_letti_ospedale[i] += ospedale[i].reparto[t][j].letto[l].tempo_occupazione;
+                    for (int pr = 0; pr < ospedale[i].coda[t].livello_pr; pr++)
+                        ospedale[i].coda[t].dati[pr].permanenza_serviti
+                    //dati_code_ospedale[i] +=;
                 }
             }
         }
+        //dati_letti_ospedale[i] = dati_letti_ospedale[i] / ospedale[i].reparto[t][j].num_letti;
     }
-
-
     char *v[] = {"colonna1","col2","COLONNA_3"};
-    genera_csv((char **) v, 3);
+    inizializza_csv("dati.csv", (char**)v, 3);
   //  riempi_csv();
 
     // metti l'output in un file csv in modo tale da poter estrarne tabelle e grafici
+
+
+    */
+}
+
+void inizializza_csv_globali() {
+    fd_code_globale = inizializza_csv("output/dati_ospedale_code_globali.csv", (char**)colonne_dati_code, NCOLONNECODE);
+    fd_reparti_globale = inizializza_csv("output/dati_ospedale_reparti_globali.csv", (char**)colonne_dati_reparti, NCOLONNEREPARTI);
+}
+
+// inizializzazione dei csv che memorizzano i dati real-time(RT) inerenti le code
+void inizializza_csv_code_rt() {
+    char* base_titolo1 = "output/dati_ospedale";
+    char* base_titolo2 = "_coda";
+    char* estensione = ".csv";
+    char titolo1[22];
+    char titolo2[33];
+
+    for (int i = 0; i < num_ospedali; i++) {
+        fd_code[i] = (int*)malloc(sizeof(int) * (ospedale[i].coda[COVID].livello_pr + ospedale[i].coda[NCOVID].livello_pr));
+        strcpy(titolo1, base_titolo1);
+        strcat(titolo1, int_to_string(i));
+        for (int pr = 0; pr < ospedale[i].coda[COVID].livello_pr + ospedale[i].coda[NCOVID].livello_pr; pr++) {
+            strcpy(titolo2, titolo1);
+            strcat(titolo2, base_titolo2);
+            strcat(titolo2, int_to_string(pr));
+            strcat(titolo2, estensione);
+            fd_code[i][pr] = inizializza_csv(titolo2, (char**)colonne_dati_code, NCOLONNECODE);
+        }
+    }
+}
+
+// inizializzazione dei csv che memorizzano i dati real-time(RT) inerenti i reparti
+void inizializza_csv_reparti_rt() {
+    char* base_titolo1 = "output/dati_ospedale";
+    char* base_titolo2 = "_reparto";
+    char* estensione = ".csv";
+    char titolo1[22];
+    char titolo2[36];
+
+    for (int i = 0; i < num_ospedali; i++) {
+        fd_reparti[i] = (int*)malloc(sizeof(int) * ospedale[i].num_reparti[COVID] + ospedale[i].num_reparti[NCOVID]);
+        strcpy(titolo1, base_titolo1);
+        strcat(titolo1, int_to_string(i));
+        for (int j = 0; j < ospedale[i].num_reparti[COVID] + ospedale[i].num_reparti[NCOVID]; j++) {
+            strcpy(titolo2, titolo1);
+            strcat(titolo2, base_titolo2);
+            strcat(titolo2, int_to_string(j));
+            strcat(titolo2, estensione);
+            fd_reparti[i][j] = inizializza_csv(titolo2, (char**)colonne_dati_reparti, NCOLONNEREPARTI);
+        }
+    }
+}
+
+void genera_output_parziale() {
+
+    // salvataggio dati code
+    char** dati = (char**)malloc(sizeof(char*) * NCOLONNECODE);
+    int index = 0;
+    for (int i = 0; i < num_ospedali; i++) {
+        for (int t = 0; t < NTYPE; t++) {
+            for (int pr = 0; pr < ospedale[i].coda[t].livello_pr; pr++) {
+                dati[0] = int_to_string(ospedale[i].coda[t].dati[pr].accessi_normali);
+                dati[1] = int_to_string(ospedale[i].coda[t].dati[pr].accessi_altre_code);
+                dati[2] = int_to_string(ospedale[i].coda[t].dati[pr].accessi_altri_ospedali);
+                dati[3] = int_to_string(ospedale[i].coda[t].dati[pr].usciti_serviti);
+                dati[4] = int_to_string(ospedale[i].coda[t].dati[pr].usciti_morti);
+                dati[5] = int_to_string(ospedale[i].coda[t].dati[pr].usciti_aggravati);
+                dati[6] = int_to_string(ospedale[i].coda[t].dati[pr].permanenza_serviti);
+                dati[7] = int_to_string(ospedale[i].coda[t].dati[pr].permanenza_morti);
+                dati[8] = int_to_string(ospedale[i].coda[t].dati[pr].permanenza_aggravati);
+                dati[9] = int_to_string(t);
+                riempi_csv(fd_code[i][index], dati, NCOLONNECODE);
+                for (int k = 0; k < NCOLONNECODE; k++)
+                   free(dati[k]);
+                index++;
+            }
+        }
+    }
+    free(dati);
+
+    // salvataggio dati reparti
+    dati = (char**)malloc(sizeof(char*) * NCOLONNEREPARTI);
+    index = 0;
+    for (int i = 0; i < num_ospedali; i++) {
+        for (int t = 0; t < NTYPE; t++) {
+            for (int j = 0; j < ospedale[i].num_reparti[t]; j++) {
+                for (int k = 0; k < ospedale[i].reparto[t][j].num_letti; k++) {
+                    dati[0] = int_to_string(ospedale[i].reparto[t][j].letto->tempo_occupazione);
+                    dati[1] = int_to_string(ospedale[i].reparto[t][j].letto->num_entrati);
+                    dati[2] = int_to_string(ospedale[i].reparto[t][j].letto->num_usciti);
+                    dati[3] = int_to_string(t);
+                }
+                riempi_csv(fd_reparti[i][index], dati, NCOLONNEREPARTI);
+                index++;
+            }
+        }
+    }
+    free(dati);
+}
+
+void distruttore() {
+    // Chiudi tutti i canali di I/O
 }
 
 #ifdef TEST
@@ -250,9 +363,14 @@ int main() {
 #else
 int main() {
     inizializza_variabili();
+    inizializza_csv_globali();
+    #ifdef GEN_RT
+    inizializza_csv_code_rt();
+    inizializza_csv_reparti_rt();
+    #endif
     descrittore_next_event* next_event = malloc(sizeof(descrittore_next_event));
     while (tempo_attuale < END) {
-
+        
         ottieni_next_event(next_event);
 
         // se abilitato, ferma la simulazione, mostra lo stato
@@ -283,7 +401,11 @@ int main() {
             processa_aggravamento(next_event);
         }
         tempo_attuale = next_event->tempo_ne;  // manda avanti il tempo della simulazione
+        #ifdef GEN_RT
+        genera_output_parziale();
+        #endif
     }
-    genera_output();
+    genera_output_globale();
+    distruttore();
 }
 #endif
