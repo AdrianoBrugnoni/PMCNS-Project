@@ -10,7 +10,7 @@
 #define SAMPLINGRATE 24.0
 
 #define NCOLONNECODE 10
-#define NCOLONNEREPARTI 4
+#define NCOLONNEREPARTI 3
 
 
 char* colonne_dati_code[] = {
@@ -19,4 +19,4 @@ char* colonne_dati_code[] = {
                 "permanenza_serviti", "permanenza_morti", "permanenza_aggravati", "tipo"};
 char* colonne_dati_reparti[] = {
                 "tempo_occupazione","num_entrati",
-                "num_usciti", "tipo"};
+                "num_usciti"};
