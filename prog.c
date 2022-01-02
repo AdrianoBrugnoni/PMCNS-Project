@@ -72,7 +72,6 @@ void inizializza_variabili(int stream) {
         ottieni_prototipo_ospedale_1(&ospedale[i]);
 
     // inizializza variabili simulazione
-
     timeout_paziente[COVID] = 30;
     timeout_paziente[NCOVID] = 15;
 

@@ -15,7 +15,7 @@ Compilare con "-lm";
 #define DEFAULT    123456789    /*Seme di default*/
 
 static long seed[STREAMS] = { DEFAULT };
-static int  stream = 0;
+thread_local static int  stream = 0;
 static int  initialized = 0;
 
 double Random(void);

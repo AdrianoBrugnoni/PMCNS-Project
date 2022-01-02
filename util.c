@@ -1,11 +1,11 @@
 /****Variabili globali csv manager*****/
 enum { NOMEM = -2 };
-static char* line = NULL;		// caratteri input
-static char* sline = NULL;		// copia linea per split
-static int  maxline = 0;
-static char** field = NULL;
-static int  maxfield = 0;
-static int  nfield = 0;
+thread_local static char* line = NULL;		// caratteri input
+thread_local static char* sline = NULL;		// copia linea per split
+thread_local static int  maxline = 0;
+thread_local static char** field = NULL;
+thread_local static int  maxfield = 0;
+thread_local static int  nfield = 0;
 #ifdef MSEXEL
 thread_local char sep[] = ",";
 #else
@@ -14,6 +14,8 @@ thread_local static char fieldsep[] = ";";	// separatore dei campi
 static char* nextsep(char*);
 static int split(void);
 /*************************************/
+thread_local int estrazione_dati;				// variabile booleana che memorizza se i dati sono stati estratti o meno.
+thread_local FILE* csv;
 
 int minv(int a, int b) {
     if (a > b)
@@ -53,7 +55,7 @@ char* int_to_string(int val) {
 	return str;
 }
 
-// crea directory path e ritorna 0 se esiste già
+// crea directory path e ritorna 0 se esiste giï¿½
 int mkdir_p(const char* path) {
 	const size_t len = strlen(path);
 	char _path[PATH_MAX];
@@ -259,11 +261,19 @@ int csvnfield(void) {
 }
 
 int estrai_ricoveri_giornata(int giornata) {
-	int index = 0;	
-	FILE* csv = fopen("./stat/covid_lazio.csv", "r");
+	int index = 0;
+	int ret;
+	if(!estrazione_dati) {
+		csv = fopen("./stat/covid_lazio.csv", "r");
+		estrazione_dati=1;
+	}
+	else
+		rewind(csv);
 	csvgetline(csv);	// Skip intestazione
 	while ((line = csvgetline(csv)) != NULL 
 			&& index != giornata)
 		index++;
-	return atoi(csvfield(NRFIELD));
+	ret = atoi(csvfield(NRFIELD));
+
+	return ret; 
 }
