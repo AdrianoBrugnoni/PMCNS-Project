@@ -7,15 +7,15 @@ static char** field = NULL;
 static int  maxfield = 0;
 static int  nfield = 0;
 #ifdef MSEXEL
-char sep[] = ",";
+thread_local char sep[] = ",";
 #else
-static char fieldsep[] = ";";	// separatore dei campi
+thread_local static char fieldsep[] = ";";	// separatore dei campi
 #endif
 static char* nextsep(char*);
 static int split(void);
 /*************************************/
 
-int min(int a, int b) {
+int minv(int a, int b) {
     if (a > b)
         return b;
     else
@@ -51,6 +51,36 @@ char* int_to_string(int val) {
 	char* str = (char*)malloc(sizeof(char) * 12);
 	sprintf(str, "%d", val);
 	return str;
+}
+
+// crea directory path e ritorna 0 se esiste già
+int mkdir_p(const char* path) {
+	const size_t len = strlen(path);
+	char _path[PATH_MAX];
+	char* p;
+	errno = 0;
+	if (len > sizeof(_path) - 1) {
+		errno = ENAMETOOLONG;
+		return -1;
+	}
+	strcpy(_path, path);
+	for (p = _path + 1; *p; p++) {
+		if (*p == '/') {
+			*p = '\0';
+			if (mkdir(_path, S_IRWXU) != 0) {
+				if (errno != EEXIST)
+					return -1;
+			}
+			*p = '/';
+		}
+	}
+
+	if (mkdir(_path, S_IRWXU) != 0) {
+		if (errno != EEXIST)
+			return -1;
+	}
+
+	return 0;
 }
 
 int inizializza_csv(char* nome_csv, char** colonne, int num_colonne) {

@@ -63,7 +63,7 @@ void PutSeed(long x) {
     char ok = 0;
 
     if (x > 0)
-        x = x % MOD;    /*Data la linearit� abbiamo che g(a*x)=a*g(x); 
+        x = x % MOD;    /*Data la linearità abbiamo che g(a*x)=a*g(x); 
                         Correzione per x troppo grandi */
     if (x < 0)
         x = ((unsigned long)time((time_t*)NULL)) % MOD;

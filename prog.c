@@ -1,4 +1,13 @@
 #include <stdio.h>
+#ifdef WIN
+#include <Windows.h>
+#else
+#include <pthread.h>
+#include <threads.h>
+#endif
+#include <limits.h>
+#include <sys/stat.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -15,6 +24,8 @@
 #include "letto.c"
 #include "reparto.c"
 #include "ospedale.c"
+
+
 
 #define ARRIVO 0                  // codice operativo dell'evento "arrivo di un paziente"
 #define COMPLETAMENTO 1           // codice operativo dell'evento "completamento di un paziente"
@@ -42,24 +53,21 @@ typedef struct {
 // variabili globali
 
 #define num_ospedali 1
-_ospedale ospedale[num_ospedali];
+thread_local _ospedale ospedale[num_ospedali];
 
-int fd_code_globale;
-int fd_reparti_globale;
-int* fd_code[num_ospedali];
-int* fd_reparti[num_ospedali];
+thread_local int fd_code_globale;
+thread_local int fd_reparti_globale;
+thread_local int* fd_code[num_ospedali];
+thread_local int* fd_reparti[num_ospedali];
 
-double tempo_attuale;
-double prossimo_giorno;
-double tick_per_giorno;
+thread_local double tempo_attuale;
+thread_local double prossimo_giorno;
+thread_local double tick_per_giorno;
 
-void inizializza_variabili() {
-
-    // inizializza generatore numeri casuali
-
-    PlantSeeds(112233445);
-    SelectStream(2); // opzionale
-
+void inizializza_variabili(int stream) {
+    // selezione del proprio stream
+    SelectStream(stream);
+    
     // inizializza ospedali
     for(int i=0; i< num_ospedali; i++)
         ottieni_prototipo_ospedale_1(&ospedale[i]);
@@ -235,13 +243,20 @@ void inizializza_csv_globali() {
 }
 
 // inizializzazione dei csv che memorizzano i dati real-time(RT) inerenti le code
-void inizializza_csv_code_rt() {
-    char* base_titolo1 = "output/dati_ospedale";
+void inizializza_csv_code_rt(int numero_simulazione) {
+    char* directory_base = "./output/";
+    char base_titolo1[27];
     char* base_titolo2 = "_coda";
     char* estensione = ".csv";
-    char titolo1[22];
-    char titolo2[33];
+    char titolo1[100];
+    char titolo2[100];
 
+
+    strcpy(base_titolo1, directory_base);
+    strcat(base_titolo1, int_to_string(numero_simulazione));
+    mkdir_p(base_titolo1);
+    strcat(base_titolo1, "/");
+    strcat(base_titolo1, "dati_ospedale");
     for (int i = 0; i < num_ospedali; i++) {
         fd_code[i] = (int*)malloc(sizeof(int) * (ospedale[i].coda[COVID].livello_pr + ospedale[i].coda[NCOVID].livello_pr));
         strcpy(titolo1, base_titolo1);
@@ -257,13 +272,19 @@ void inizializza_csv_code_rt() {
 }
 
 // inizializzazione dei csv che memorizzano i dati real-time(RT) inerenti i reparti
-void inizializza_csv_reparti_rt() {
-    char* base_titolo1 = "output/dati_ospedale";
+void inizializza_csv_reparti_rt(int numero_simulazione) {
+    char* directory_base = "./output/";
+    char base_titolo1[27];
     char* base_titolo2 = "_reparto";
     char* estensione = ".csv";
-    char titolo1[22];
-    char titolo2[36];
+    char titolo1[27];
+    char titolo2[41];
 
+
+    strcpy(base_titolo1, directory_base);
+    strcat(base_titolo1, int_to_string(numero_simulazione));
+    strcat(base_titolo1, "/");
+    strcat(base_titolo1, "dati_ospedale");
     for (int i = 0; i < num_ospedali; i++) {
         fd_reparti[i] = (int*)malloc(sizeof(int) * NTYPE);
         strcpy(titolo1, base_titolo1);
@@ -330,60 +351,117 @@ void genera_output_parziale() {
     free(dati);
 }
 
+
+
+
 void distruttore() {
     // Chiudi tutti i canali di I/O
 }
+
+void* simulation_start(void* input) {
+    int in = *((int*)input);
+#ifdef AUDIT
+    printf("Simulation: %d - STARTED\n", in);
+#endif
+    inizializza_variabili(in);
+    inizializza_csv_globali();
+#ifdef GEN_RT
+    inizializza_csv_code_rt(in);
+    inizializza_csv_reparti_rt(in);
+#endif
+    descrittore_next_event* next_event = malloc(sizeof(descrittore_next_event));
+    while (tempo_attuale < END) {
+
+        ottieni_next_event(next_event);
+
+        // se abilitato, ferma la simulazione, mostra lo stato
+        // degli ospedali ed il prossimo evento. Mettiti in attesa
+        // del carattere "invio" prima di processare il next event
+#ifdef SIM_INTERATTIVA
+        if (next_event->tempo_ne >= END)
+            step_simulazione(ospedale, num_ospedali, tempo_attuale, next_event, 0);
+        else
+            step_simulazione(ospedale, num_ospedali, tempo_attuale, next_event, 1);
+#endif
+
+
+        // se abilitato, cerca di aggiornare il flusso di entrata
+        // nelle code covid in funzione del giorno attuale
+#ifdef FLUSSO_COVID_VARIABILE
+        aggiorna_flussi_covid(next_event->tempo_ne);
+#endif
+
+        // gestisci eventi
+        if (next_event->evento == ARRIVO) {
+            processa_arrivo(next_event);
+        }
+        else if (next_event->evento == COMPLETAMENTO) {
+            processa_completamento(next_event);
+        }
+        else if (next_event->evento == TIMEOUT) {
+            processa_timeout(next_event);
+        }
+        else if (next_event->evento == AGGRAVAMENTO) {
+            processa_aggravamento(next_event);
+        }
+        tempo_attuale = next_event->tempo_ne;  // manda avanti il tempo della simulazione
+#ifdef GEN_RT
+        genera_output_parziale();
+#endif
+    }
+    genera_output_globale();
+    distruttore();
+}
+
+int inizializza_simulazioni() {
+    int select, ret;
+    printf("\n------------------------------------------");
+    printf("\n--- Progetto PMCSN -----------------------");
+    printf("\n------------------------------------------\n\n");
+
+    r_menu:
+    printf("\n\n\nSelezionare il numero di simulazioni da svolgere: ");
+    fflush(stdout);
+    ret = scanf("%d", &select);
+    getchar();
+    if (select <= 0 || select >= MAXNSIMULATION || ret != 1) goto r_menu;
+
+    // inizializza generatore numeri casuali
+    PlantSeeds(-1);
+    int input[select];
+    pthread_t tid[select];
+    for (int i = 0; i < select; i++) {
+        input[i] = i;
+        #ifdef WIN
+        if ((CreateThread(NULL, 0, simulation_start, NULL, 0, NULL)) == NULL) {
+            printf("Impossibile creare il thread. Errore: %d\n", ret);
+            exit(-1);
+        }
+        #else
+        if ((pthread_create(&tid[i], NULL, simulation_start, &input[i])) != 0) {
+            printf("Impossibile creare il thread. Errore: %d\n", ret);
+            exit(-1);
+        }
+        #endif
+    }
+    for (int i = 0; i < select; i++)
+        pthread_join(tid[i], NULL);
+    return select;
+}
+
 
 #ifdef TEST
 int main() {
 
 }
 #else
-int main() {
-    inizializza_variabili();
-    inizializza_csv_globali();
-    #ifdef GEN_RT
-    inizializza_csv_code_rt();
-    inizializza_csv_reparti_rt();
+void main() {
+    #ifdef SIM_INTERATTIVA
+    int init = 0;
+    simulation_start(&init);
+    #else
+    int nsimulation = inizializza_simulazioni();
     #endif
-    descrittore_next_event* next_event = malloc(sizeof(descrittore_next_event));
-    while (tempo_attuale < END) {
-        
-        ottieni_next_event(next_event);
 
-        // se abilitato, ferma la simulazione, mostra lo stato
-        // degli ospedali ed il prossimo evento. Mettiti in attesa
-        // del carattere "invio" prima di processare il next event
-        #ifdef SIM_INTERATTIVA
-        if(next_event->tempo_ne >= END)
-            step_simulazione(ospedale, num_ospedali, tempo_attuale, next_event, 0);
-        else
-            step_simulazione(ospedale, num_ospedali, tempo_attuale, next_event, 1);
-        #endif
-
-
-        // se abilitato, cerca di aggiornare il flusso di entrata
-        // nelle code covid in funzione del giorno attuale
-        #ifdef FLUSSO_COVID_VARIABILE
-        aggiorna_flussi_covid(next_event->tempo_ne);
-        #endif
-
-        // gestisci eventi
-        if(next_event->evento == ARRIVO) {
-            processa_arrivo(next_event);
-        } else if(next_event->evento == COMPLETAMENTO) {
-            processa_completamento(next_event);
-        } else if(next_event->evento == TIMEOUT) {
-            processa_timeout(next_event);
-        } else if(next_event->evento == AGGRAVAMENTO) {
-            processa_aggravamento(next_event);
-        }
-        tempo_attuale = next_event->tempo_ne;  // manda avanti il tempo della simulazione
-        #ifdef GEN_RT
-        genera_output_parziale();
-        #endif
-    }
-    genera_output_globale();
-    distruttore();
 }
 #endif
