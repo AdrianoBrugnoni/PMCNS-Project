@@ -65,8 +65,13 @@ void PutSeed(long x) {
     if (x > 0)
         x = x % MOD;    /*Data la linearità abbiamo che g(a*x)=a*g(x); 
                         Correzione per x troppo grandi */
-    if (x < 0)
+    if (x < 0){
         x = ((unsigned long)time((time_t*)NULL)) % MOD;
+        #ifdef AUDIT
+        printf("Seed: %ld\n", x);
+        #endif
+
+    }
     if (x == 0)
         while (!ok) {
             printf("\nEnter a positive integer seed (9 digits or less) >> ");

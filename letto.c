@@ -15,7 +15,7 @@ typedef struct {
     unsigned long num_usciti;   // numero di pazienti usciti da questo letto
 } _letto;
 
-double servizio_paziente[NTYPE];    // tempo medio di servizio nel letto per i tipi di pazienti
+thread_local double servizio_paziente[NTYPE];    // tempo medio di servizio nel letto per i tipi di pazienti
 
 double ottieni_tempo_servizio_letto(int tipo) {
     return exponential(servizio_paziente[tipo]);

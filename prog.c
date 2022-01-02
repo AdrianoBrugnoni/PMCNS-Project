@@ -27,32 +27,31 @@
 
 
 
-#define ARRIVO 0                  // codice operativo dell'evento "arrivo di un paziente"
-#define COMPLETAMENTO 1           // codice operativo dell'evento "completamento di un paziente"
-#define TIMEOUT 2                 // codice operativo dell'evento "morte di un paziente in coda"
-#define AGGRAVAMENTO 3            // codice operativo dell'evento "aggravamento di un paziente e cambio coda"
+#define ARRIVO 0                    // codice operativo dell'evento "arrivo di un paziente"
+#define COMPLETAMENTO 1             // codice operativo dell'evento "completamento di un paziente"
+#define TIMEOUT 2                   // codice operativo dell'evento "morte di un paziente in coda"
+#define AGGRAVAMENTO 3              // codice operativo dell'evento "aggravamento di un paziente e cambio coda"
+
+#define num_ospedali 1              // numero di ospedali da simulare
 
 // struttura dati che contiene informazioni sul next event
-
 typedef struct {
-    int evento;                   // ARRIVO - COMPLETAMENTO - TIMEOUT
-    double tempo_ne;              // tempo a cui avviene il prossimo evento
+    int evento;                     // ARRIVO - COMPLETAMENTO - TIMEOUT
+    double tempo_ne;                // tempo a cui avviene il prossimo evento
 
-    int id_ospedale;              // indice dell'ospedale su cui è avvenuto l'evento
-    int id_reparto;               // indice del reparto su cui è avvenuto l'evento
-    int id_letto;                 // indice del letto su cui è avvenuto l'evento
-    int id_priorita;              // indice del livello di priorità della coda su cui è avvenuto l'evento
-    int id_paziente;              // id del paziente di cui è avvenuto il timeout in coda
-    int tipo;                     // COVID - NCOVID
+    int id_ospedale;                // indice dell'ospedale su cui è avvenuto l'evento
+    int id_reparto;                 // indice del reparto su cui è avvenuto l'evento
+    int id_letto;                   // indice del letto su cui è avvenuto l'evento
+    int id_priorita;                // indice del livello di priorità della coda su cui è avvenuto l'evento
+    int id_paziente;                // id del paziente di cui è avvenuto il timeout in coda
+    int tipo;                       // COVID - NCOVID
 } descrittore_next_event;
 
 #ifdef SIM_INTERATTIVA
-#include "interattivo.c"  // fa uso di tutte le struct di sopra
+#include "interattivo.c"            // fa uso di tutte le struct di sopra
 #endif
 
 // variabili globali
-
-#define num_ospedali 1
 thread_local _ospedale ospedale[num_ospedali];
 
 thread_local int fd_code_globale;
