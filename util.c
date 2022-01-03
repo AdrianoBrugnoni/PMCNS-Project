@@ -344,3 +344,7 @@ int estrai_ricoveri_giornata(int giornata) {
 
 	return ret; 
 }
+
+void _close() {
+	fclose(csv);
+}
