@@ -340,7 +340,6 @@ void genera_output_parziale() {
                 dati[7] = int_to_string(ospedale[i].coda[t].dati[pr].permanenza_morti);
                 dati[8] = int_to_string(ospedale[i].coda[t].dati[pr].permanenza_aggravati);
                 dati[9] = int_to_string(t);
-                //printf("Invoco riempi_csv con fd_code[i][index]=%d (i=%d, index=%d)\n", fd_code[i][index], i, index);
                 riempi_csv(fd_code[i][index], dati, NCOLONNECODE);
                 for (int k = 0; k < NCOLONNECODE; k++)
                    free(dati[k]);

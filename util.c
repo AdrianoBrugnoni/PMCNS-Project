@@ -140,8 +140,6 @@ int inizializza_csv(char* nome_csv, char** colonne, int num_colonne) {
         printf("Errore creazione file %s, chiusura del programma (errno %d)\n", nome_csv, errno);
         fflush(stdout);
 		exit(0);
-    } else {
-        printf("Creazione file %s avvenuta, fd: %d\n", nome_csv, fd);
     }
 #ifdef MSEXEL
 	if ((ret = write(fd, "sep=,\n", 6)) == -1) {
