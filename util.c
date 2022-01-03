@@ -7,6 +7,13 @@ __thread static int  maxline = 0;
 __thread static char** field = NULL;
 __thread static int  maxfield = 0;
 __thread static int  nfield = 0;
+#elif WIN
+__declspec(thread) static char* line = NULL;		// caratteri input
+__declspec(thread) static char* sline = NULL;		// copia linea per split
+__declspec(thread) static int  maxline = 0;
+__declspec(thread) static char** field = NULL;
+__declspec(thread) static int  maxfield = 0;
+__declspec(thread) static int  nfield = 0;
 #else
 thread_local static char* line = NULL;		// caratteri input
 thread_local static char* sline = NULL;		// copia linea per split
@@ -19,12 +26,16 @@ thread_local static int  nfield = 0;
 #ifdef MSEXEL
 #ifdef MAC_OS
 __thread char sep[] = ",";
+#elif WIN
+__declspec(thread) char sep[] = ",";
 #else
 thread_local char sep[] = ",";
 #endif
 #else
 #ifdef MAC_OS
 __thread static char fieldsep[] = ";";	// separatore dei campi
+#elif WIN
+__declspec(thread) static char fieldsep[] = ";";	// separatore dei campi
 #else
 thread_local static char fieldsep[] = ";";	// separatore dei campi
 #endif
@@ -35,6 +46,9 @@ static int split(void);
 #ifdef MAC_OS
 __thread int estrazione_dati;				// variabile booleana che memorizza se i dati sono stati estratti o meno.
 __thread FILE* csv;
+#elif WIN
+__declspec(thread) int estrazione_dati;				// variabile booleana che memorizza se i dati sono stati estratti o meno.
+__declspec(thread) FILE* csv;
 #else
 thread_local int estrazione_dati;				// variabile booleana che memorizza se i dati sono stati estratti o meno.
 thread_local FILE* csv;
@@ -101,6 +115,8 @@ char* int_to_string(int val) {
 	return str;
 }
 
+
+#ifndef WIN
 // crea directory path e ritorna 0 se esiste già
 int mkdir_p(const char* path) {
 	const size_t len = strlen(path);
@@ -130,6 +146,7 @@ int mkdir_p(const char* path) {
 
 	return 0;
 }
+#endif
 
 int inizializza_csv(char* nome_csv, char** colonne, int num_colonne) {
     int fd;
@@ -343,6 +360,6 @@ int estrai_ricoveri_giornata(int giornata) {
 	return ret; 
 }
 
-void _close() {
+void __close() {
 	fclose(csv);
 }

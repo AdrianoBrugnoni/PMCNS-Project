@@ -17,6 +17,8 @@ Compilare con "-lm";
 static long seed[STREAMS] = { DEFAULT };
 #ifdef MAC_OS
 __thread static int stream = 0;
+#elif WIN
+__declspec(thread) static int stream = 0;
 #else
 thread_local static int stream = 0;
 #endif
