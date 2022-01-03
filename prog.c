@@ -32,7 +32,7 @@
 #define TIMEOUT 2                   // codice operativo dell'evento "morte di un paziente in coda"
 #define AGGRAVAMENTO 3              // codice operativo dell'evento "aggravamento di un paziente e cambio coda"
 
-#define num_ospedali 1              // numero di ospedali da simulare
+#define NOSPEDALI 1              // numero di ospedali da simulare
 
 // struttura dati che contiene informazioni sul next event
 typedef struct {
@@ -52,12 +52,12 @@ typedef struct {
 #endif
 
 // variabili globali
-thread_local _ospedale ospedale[num_ospedali];
+thread_local _ospedale ospedale[NOSPEDALI];
 
 thread_local int fd_code_globale;
 thread_local int fd_reparti_globale;
-thread_local int* fd_code[num_ospedali];
-thread_local int* fd_reparti[num_ospedali];
+thread_local int* fd_code[NOSPEDALI];
+thread_local int* fd_reparti[NOSPEDALI];
 
 thread_local double tempo_attuale;
 thread_local double prossimo_giorno;
@@ -68,7 +68,7 @@ void inizializza_variabili(int stream) {
     SelectStream(stream);
     
     // inizializza ospedali
-    for(int i=0; i< num_ospedali; i++)
+    for(int i=0; i< NOSPEDALI; i++)
         ottieni_prototipo_ospedale_1(&ospedale[i]);
 
     // inizializza variabili simulazione
@@ -88,7 +88,7 @@ void ottieni_next_event(descrittore_next_event* ne) {
     ne->tempo_ne = INF;
 
     // cerca il prossimo paziente che entra in una coda
-    for (int i = 0; i < num_ospedali; i++) {
+    for (int i = 0; i < NOSPEDALI; i++) {
         for (int t = 0; t < NTYPE; t++) {
             // se il tasso è nullo non avrò alcun arrivo. Controllo da fare per evitare che il next-event sia sempre un arrivo.
             if (ospedale[i].coda[t].tasso_arrivo != 0 && ne->tempo_ne > ospedale[i].coda[t].prossimo_arrivo) { 
@@ -101,7 +101,7 @@ void ottieni_next_event(descrittore_next_event* ne) {
     }
 
     // cerca il prossimo paziente che esce da un letto
-    for (int i = 0; i < num_ospedali; i++) {
+    for (int i = 0; i < NOSPEDALI; i++) {
         for (int t = 0; t < NTYPE; t++) {
             for (int j = 0; j < ospedale[i].num_reparti[t]; j++) {
                 for (int k = 0; k < ospedale[i].reparto[t][j].num_letti; k++) {
@@ -120,7 +120,7 @@ void ottieni_next_event(descrittore_next_event* ne) {
 
     // cerca il prossimo paziente che muore in attesa in coda
     #ifdef ABILITA_TIMEOUT
-    for (int i = 0; i < num_ospedali; i++) {
+    for (int i = 0; i < NOSPEDALI; i++) {
         for (int t = 0; t < NTYPE; t++) {
             for (int pr = 0; pr < ospedale[i].coda[t].livello_pr; pr++) {
                 paziente* counter = ospedale[i].coda[t].testa[pr];
@@ -142,7 +142,7 @@ void ottieni_next_event(descrittore_next_event* ne) {
 
     // cerca il prossimo che si aggrava
     #ifdef ABILITA_AGGRAVAMENTO
-    for (int i = 0; i < num_ospedali; i++) {
+    for (int i = 0; i < NOSPEDALI; i++) {
         for (int t = 0; t < NTYPE; t++) {
             for (int pr = 0; pr < ospedale[i].coda[t].livello_pr; pr++) {
                 paziente* counter = ospedale[i].coda[t].testa[pr];
@@ -226,7 +226,7 @@ void aggiorna_flussi_covid(double tempo_attuale) {
         prossimo_giorno += tick_per_giorno;
 
         // per ogni coda COVID e NCOVID di ogni ospedale invoca:
-        for(int i=0; i<num_ospedali; i++)
+        for(int i=0; i<NOSPEDALI; i++)
             aggiorna_flusso_covid(&ospedale[i].coda[COVID], (prossimo_giorno/tick_per_giorno)-1);
     }
 }
@@ -255,7 +255,7 @@ void inizializza_csv_code_rt(int numero_simulazione) {
     mkdir_p(base_titolo1);
     strcat(base_titolo1, "/");
     strcat(base_titolo1, "dati_ospedale");
-    for (int i = 0; i < num_ospedali; i++) {
+    for (int i = 0; i < NOSPEDALI; i++) {
         fd_code[i] = (int*)malloc(sizeof(int) * (ospedale[i].coda[COVID].livello_pr + ospedale[i].coda[NCOVID].livello_pr));
         strcpy(titolo1, base_titolo1);
         strcat(titolo1, int_to_string(i));
@@ -283,7 +283,7 @@ void inizializza_csv_reparti_rt(int numero_simulazione) {
     strcat(base_titolo1, int_to_string(numero_simulazione));
     strcat(base_titolo1, "/");
     strcat(base_titolo1, "dati_ospedale");
-    for (int i = 0; i < num_ospedali; i++) {
+    for (int i = 0; i < NOSPEDALI; i++) {
         fd_reparti[i] = (int*)malloc(sizeof(int) * NTYPE);
         strcpy(titolo1, base_titolo1);
         strcat(titolo1, int_to_string(i));
@@ -302,7 +302,7 @@ void genera_output_parziale() {
     // salvataggio dati code
     char** dati = (char**)malloc(sizeof(char*) * NCOLONNECODE);
     int index = 0;
-    for (int i = 0; i < num_ospedali; i++) {
+    for (int i = 0; i < NOSPEDALI; i++) {
         for (int t = 0; t < NTYPE; t++) {
             for (int pr = 0; pr < ospedale[i].coda[t].livello_pr; pr++) {
                 dati[0] = int_to_string(ospedale[i].coda[t].dati[pr].accessi_normali);
@@ -327,7 +327,7 @@ void genera_output_parziale() {
     // salvataggio dati reparti
     dati = (char**)malloc(sizeof(char*) * NCOLONNEREPARTI);
     int dati_temp[NCOLONNEREPARTI] = { 0 };
-    for (int i = 0; i < num_ospedali; i++) {
+    for (int i = 0; i < NOSPEDALI; i++) {
         for (int t = 0; t < NTYPE; t++) {
             for (int j = 0; j < ospedale[i].num_reparti[t]; j++) {
                 for (int k = 0; k < ospedale[i].reparto[t][j].num_letti; k++) {
@@ -377,9 +377,9 @@ void* simulation_start(void* input) {
         // del carattere "invio" prima di processare il next event
 #ifdef SIM_INTERATTIVA
         if (next_event->tempo_ne >= END)
-            step_simulazione(ospedale, num_ospedali, tempo_attuale, next_event, 0);
+            step_simulazione(ospedale, NOSPEDALI, tempo_attuale, next_event, 0);
         else
-            step_simulazione(ospedale, num_ospedali, tempo_attuale, next_event, 1);
+            step_simulazione(ospedale, NOSPEDALI, tempo_attuale, next_event, 1);
 #endif
 
 
