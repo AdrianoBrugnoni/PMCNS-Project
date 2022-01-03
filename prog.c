@@ -354,6 +354,7 @@ void genera_output_parziale() {
 
 void distruttore() {
     // Chiudi tutti i canali di I/O
+    _close();
 }
 
 void* simulation_start(void* input) {
