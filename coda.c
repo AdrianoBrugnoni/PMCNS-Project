@@ -124,7 +124,7 @@ paziente* rimuovi_per_id(paziente** testa, int id) {
     return NULL;
 }
 
-void aggiungi_paziente(_coda_pr* coda, paziente* p) {
+void aggiungi_paziente(_coda_pr* coda, paziente* p, int tipo_ingresso) {
 
     // capisci in quale coda va inserito
     int num_coda;
@@ -141,7 +141,10 @@ void aggiungi_paziente(_coda_pr* coda, paziente* p) {
     // aggiungilo in fondo alla coda e aggiorna statistiche di output
     aggiungi_in_coda(&coda->testa[num_coda], p);
 
-    coda->dati[num_coda].accessi_normali++;
+    if(tipo_ingresso == TRASFERITO)
+        coda->dati[num_coda].accessi_altri_ospedali++;
+    else if(tipo_ingresso == DIRETTO)
+        coda->dati[num_coda].accessi_normali++;
 }
 
 void rimuovi_paziente(_coda_pr* coda, int id, int pr, double tempo_attuale) {

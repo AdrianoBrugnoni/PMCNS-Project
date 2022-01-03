@@ -1,5 +1,14 @@
 double tempo_stop = -1;
 
+typedef struct {
+    int analizzato;             // 0 se è stato già mostrato su console, 1 altrimenti
+    int ospedale_partenza;
+    int ospedale_destinazione;
+    unsigned long id_paziente;
+    double tempo_trasferimento;
+} _ultimo_trasferimento;
+_ultimo_trasferimento ultimo_trasferimento;
+
 char* nome_evento(int codice_evento) {
     if(codice_evento == ARRIVO)
         return "ARRIVO";
@@ -9,6 +18,8 @@ char* nome_evento(int codice_evento) {
         return "TIMEOUT";
     else if(codice_evento == AGGRAVAMENTO)
         return "AGGRAVAMENTO";
+    else if(codice_evento == TRASFERIMENTO)
+        return "TRASFERIMENTO";
     else
         return "";
 }
@@ -91,6 +102,19 @@ void stampa_stato_code(_ospedale* ospedale, int num_ospedali) {
     }
 }
 
+void stampa_trasferimenti(_trasferimento* testa_trasferiti) {
+
+    printf("\n------------------------------------------");
+    printf("\n--- Lista trasferimenti ------------------");
+    printf("\n------------------------------------------\n\n");
+
+    _trasferimento* t = testa_trasferiti;
+    while(t != NULL) {
+        printf("\tpaziente %lu da ospedale %d->%d (arrivo %.2f)\n", t->p->id, t->ospedale_partenza, t->ospedale_destinazione, t->p->ingresso);
+        t = t->next;
+    }
+}
+
 void stampa_simulazione_attuale(_ospedale* ospedale, int num_ospedali, double tempo_attuale, descrittore_next_event* next_event) {
 
     for(int i=0; i<num_ospedali; i++) { // per ogni ospedale
@@ -159,6 +183,15 @@ void stampa_simulazione_attuale(_ospedale* ospedale, int num_ospedali, double te
         }
     }
 
+    // mostra se è stato avviato un trasferimento nella precedente iterazione
+
+    if(ultimo_trasferimento.analizzato == 1) {
+        ultimo_trasferimento.analizzato = 0;
+        printf("\nTRASFERIMENTO IN EVENTO PRECEDENTE\n");
+        printf("\tpaziente %lu da ospedale %d->%d", ultimo_trasferimento.id_paziente, ultimo_trasferimento.ospedale_partenza, ultimo_trasferimento.ospedale_destinazione);
+        printf(" (arrivo %.2f)\n", ultimo_trasferimento.tempo_trasferimento);
+    }
+
     // stampa informazioni sul prossimo evento
 
     printf("\nPROSSIMO EVENTO:\t%s - ", nome_evento(next_event->evento));
@@ -167,13 +200,15 @@ void stampa_simulazione_attuale(_ospedale* ospedale, int num_ospedali, double te
     } else if(next_event->evento == COMPLETAMENTO) {
         printf("ospedale %d, reparto %s %d, letto %d\n", next_event->id_ospedale, nome_da_tipo(next_event->tipo), next_event->id_reparto, next_event->id_letto);
     } else if(next_event->evento == AGGRAVAMENTO || next_event->evento == TIMEOUT) {
-        printf("ospedale %d, coda %s (id:%d)\n", next_event->id_ospedale, nome_coda(next_event->tipo, next_event->id_priorita), next_event->id_paziente);
+        printf("ospedale %d, coda %s (id:%lu)\n", next_event->id_ospedale, nome_coda(next_event->tipo, next_event->id_priorita), next_event->id_paziente);
+    } else if(next_event->evento == TRASFERIMENTO) {
+        printf("ospedale %d->%d (paziente %lu)\n", next_event->id_ospedale_partenza, next_event->id_ospedale_destinazione, next_event->paziente_trasferito->id);
     }
     printf("\t\t\ttempo attuale:    %f\n", tempo_attuale);
     printf("\t\t\ttempo next event: %f\n", next_event->tempo_ne);
 }
 
-void step_simulazione(_ospedale* ospedale, int num_ospedali, double tempo_attuale, descrittore_next_event* next_event, int step_forzato) {
+void step_simulazione(_ospedale* ospedale, int num_ospedali, double tempo_attuale, descrittore_next_event* next_event, _trasferimento* testa_trasferiti, int step_forzato) {
 
     if(tempo_attuale < tempo_stop && step_forzato == 1) { // fintanto che il tempo attuale non raggiunge il tempo di stop si va avanti veloce
         return;
@@ -209,7 +244,9 @@ void step_simulazione(_ospedale* ospedale, int num_ospedali, double tempo_attual
                     stampa_stato_code(ospedale, num_ospedali);
                 else if(comando[0] == 's') // ristampa dati evento attuale
                     stampa_simulazione_attuale(ospedale, num_ospedali, tempo_attuale, next_event);
-                    
+                else if(comando[0] == 't') // stampa trasferimenti in corso
+                    stampa_trasferimenti(testa_trasferiti);
+
                 indice = 0;
                 goto preleva_input;
             }

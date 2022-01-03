@@ -26,11 +26,13 @@
 #include "letto.c"
 #include "reparto.c"
 #include "ospedale.c"
+#include "trasferimento.c"
 
 #define ARRIVO 0                    // codice operativo dell'evento "arrivo di un paziente"
 #define COMPLETAMENTO 1             // codice operativo dell'evento "completamento di un paziente"
 #define TIMEOUT 2                   // codice operativo dell'evento "morte di un paziente in coda"
 #define AGGRAVAMENTO 3              // codice operativo dell'evento "aggravamento di un paziente e cambio coda"
+#define TRASFERIMENTO 4             // codice operativo dell'evento "arrivo di un paziente trasferito tra ospedali"
 
 #define NOSPEDALI 2                 // numero di ospedali da simulare
 
@@ -43,8 +45,12 @@ typedef struct {
     int id_reparto;                 // indice del reparto su cui è avvenuto l'evento
     int id_letto;                   // indice del letto su cui è avvenuto l'evento
     int id_priorita;                // indice del livello di priorità della coda su cui è avvenuto l'evento
-    int id_paziente;                // id del paziente di cui è avvenuto il timeout in coda
+    unsigned long id_paziente;      // id del paziente di cui è avvenuto il timeout in coda
     int tipo;                       // COVID - NCOVID
+
+    int id_ospedale_partenza;       // indice dell'ospedale da cui è partito il trasferimento
+    int id_ospedale_destinazione;   // indice dell'ospedale su cui arriva il paziente trasferito
+    paziente* paziente_trasferito;  // puntatore al paziente che è stato trasferito
 } descrittore_next_event;
 
 #ifdef SIM_INTERATTIVA
@@ -58,6 +64,7 @@ double soglia_utilizzo;
 // variabili globali per thread
 #ifdef MAC_OS
 __thread _ospedale ospedale[NOSPEDALI];
+__thread _trasferimento* testa_trasferiti;
 
 __thread int fd_code_globale;
 __thread int fd_reparti_globale;
@@ -69,6 +76,7 @@ __thread double prossimo_giorno;
 __thread double tick_per_giorno;
 #elif WIN
 __declspec(thread) _ospedale ospedale[NOSPEDALI];
+__declspec(thread) _trasferimento* testa_trasferiti;
 
 __declspec(thread) int fd_code_globale;
 __declspec(thread) int fd_reparti_globale;
@@ -80,6 +88,7 @@ __declspec(thread) double prossimo_giorno;
 __declspec(thread) double tick_per_giorno;
 #else
 thread_local _ospedale ospedale[NOSPEDALI];
+thread_local _trasferimento* testa_trasferiti;
 
 thread_local int fd_code_globale;
 thread_local int fd_reparti_globale;
@@ -114,6 +123,8 @@ void inizializza_variabili() {
     servizio_paziente[NCOVID] = 30;
 
     soglia_utilizzo = 0.5;
+
+    ultimo_trasferimento.analizzato = 1;
 }
 
 void inizializza_variabili_per_simulazione(int stream) {
@@ -128,6 +139,15 @@ void inizializza_variabili_per_simulazione(int stream) {
     tempo_attuale = START;
     tick_per_giorno = 24;
     prossimo_giorno = tick_per_giorno; // 24 ore
+
+    // variabili
+    testa_trasferiti = NULL;
+}
+
+double ottieni_tempo_trasferimento(int from, int to) {
+    return tempo_trasferimento[from][to];
+    // oppure, genera un valore casuale da una distribuzione che ha 
+    // come media proprio il valore tempo_trasferimento[from][to]
 }
 
 void ottieni_next_event(descrittore_next_event* ne) {
@@ -208,6 +228,20 @@ void ottieni_next_event(descrittore_next_event* ne) {
         }
     }
     #endif
+
+    #ifdef COOPERAZIONE_OSPEDALI
+    _trasferimento* t = testa_trasferiti;
+    while(t != NULL) {
+        if(ne->tempo_ne > t->p->ingresso) {
+            ne->tempo_ne = t->p->ingresso;
+            ne->evento = TRASFERIMENTO;
+            ne->id_ospedale_partenza = t->ospedale_partenza;
+            ne->id_ospedale_destinazione = t->ospedale_destinazione;
+            ne->paziente_trasferito = t->p;
+        }
+        t = t->next;
+    }
+    #endif
 }
 
 void processa_arrivo(descrittore_next_event* ne) {
@@ -217,31 +251,81 @@ void processa_arrivo(descrittore_next_event* ne) {
     double tempo_di_arrivo = ne->tempo_ne;
     int tipo_di_arrivo = ne->tipo; // COVID o NCOVID
 
-    _ospedale* ospedale_scelto = ospedale_di_arrivo;
-    _coda_pr* coda_scelta = coda_di_arrivo;
-
     // crea un paziente
     paziente* p = genera_paziente(tempo_di_arrivo, tipo_di_arrivo); 
 
     // se definito, si decide se il paziente deve essere trasferito nella coda di un 
     // altro ospedale oppure se può essere inserito nella coda dell'ospedale attuale
     #ifdef COOPERAZIONE_OSPEDALI
-    if(tipo_di_arrivo == COVID) {
+    if(tipo_di_arrivo == COVID && NOSPEDALI > 1) {
 
-        #ifdef SIM_INTERATTIVA
-        // fai qualcosa per far capire che deve esserci una stampa riguardo il fatto che il paziente 
-        // è entrato in una coda diversa da quella in cui sarebbe dovuto entrare
-        #endif
+        // utilizzo_attuale = utilizzo dell'ospedale su cui è avvenuto l'arrivo
+        // utilizzo_min = utilizzo più basso tra tutti gli ospedali in cui paziente potrebbe essere trasferito
+        // tempo_nuovo_arrivo = tempo nel quale il paziente arriverà all'ospedale prescelto
+        // id_nuovo_ospedale = ospedale prescelto
+
+        double utilizzo_attuale = ottieni_livello_utilizzo_zona_covid(ospedale_di_arrivo);
+        double utilizzo_min = INT_MAX;
+        double tempo_nuovo_arrivo;
+        int id_nuovo_ospedale = -1;
+
+        double utilizzo_tmp;
+        double tempo_nuovo_arrivo_tmp;
+
+        // cerca il valore minimo di utilizzo tra tutti gli ospedali diversi da quello su cui
+        // è avvenuto l'arrivo e tra gli ospedali che possono essere raggiunti prima della morte del paziente
+        for(int i=0; i<NOSPEDALI; i++) {
+
+            tempo_nuovo_arrivo_tmp = tempo_di_arrivo + ottieni_tempo_trasferimento(ne->id_ospedale, i);
+
+            if(i != ne->id_ospedale && p->timeout > tempo_nuovo_arrivo_tmp) {
+                utilizzo_tmp = ottieni_livello_utilizzo_zona_covid(&ospedale[i]);
+                if(utilizzo_tmp < utilizzo_min) {
+                    utilizzo_min = utilizzo_tmp;
+                    tempo_nuovo_arrivo = tempo_nuovo_arrivo_tmp;
+                    id_nuovo_ospedale = i;
+                }
+            }
+        }
+
+        // se è stato trovato almeno un ospedale abbastanza vicino che è più libero, di
+        // una certa quantità, dell'ospedale attuale allora si effettua il trasferimento
+        if(id_nuovo_ospedale != -1 && utilizzo_attuale - soglia_utilizzo > utilizzo_min) {
+
+            p->ingresso = tempo_nuovo_arrivo;
+
+            _trasferimento* trasferimento = malloc(sizeof(_trasferimento));
+            trasferimento->p = p;
+            trasferimento->ospedale_partenza = ne->id_ospedale;
+            trasferimento->ospedale_destinazione = id_nuovo_ospedale;
+            trasferimento->next = NULL;
+
+            aggiungi_trasferimento(&testa_trasferiti, trasferimento);
+            calcola_prossimo_arrivo_in_coda(coda_di_arrivo, tempo_di_arrivo); // genera il tempo del prossimo arrivo nella coda
+                    
+            #ifdef SIM_INTERATTIVA
+            // scrivo i dati relativi all'ultimo trasferimento della simulazione in modo 
+            // tale da porteli mostrare sulla console nell'analisi dell'evento successivo
+            ultimo_trasferimento.ospedale_partenza = trasferimento->ospedale_partenza;
+            ultimo_trasferimento.ospedale_destinazione = trasferimento->ospedale_destinazione;
+            ultimo_trasferimento.tempo_trasferimento = trasferimento->p->ingresso;
+            ultimo_trasferimento.id_paziente = trasferimento->p->id;
+            ultimo_trasferimento.analizzato = 1;
+            #endif
+
+            // esci
+            return; 
+        }
     } 
     #endif
 
-    aggiungi_paziente(coda_scelta, p); // in questo modo si aggiunge un paziente in coda
-    calcola_prossimo_arrivo_in_coda(coda_di_arrivo, tempo_di_arrivo); // genera il tempo del prossimo arrivo nella coda
+    aggiungi_paziente(coda_di_arrivo, p, DIRETTO); // si aggiunge un paziente in coda
+    calcola_prossimo_arrivo_in_coda(coda_di_arrivo, tempo_di_arrivo); // si genera il tempo del prossimo arrivo nella coda
 
     // poichè un nuovo paziente è entrata in coda, si controlla
     // se c'è modo di muovere un paziente in un letto libero
 
-    prova_muovi_paziente_in_letto(ospedale_scelto, tempo_di_arrivo, tipo_di_arrivo, 0);
+    prova_muovi_paziente_in_letto(ospedale_di_arrivo, tempo_di_arrivo, tipo_di_arrivo, 0);
 }
 
 void processa_completamento(descrittore_next_event* ne) {
@@ -277,6 +361,22 @@ void processa_aggravamento(descrittore_next_event* ne) {
 
     // muovi il paziente su un livello di priorità diverso nella coda
     cambia_priorita_paziente(coda_di_aggravamento, pr_iniziale, pr_finale, id_paziente, tempo_aggravamento);
+}
+
+void processa_trasferimento(descrittore_next_event* ne) {
+
+    _ospedale* ospedale_di_destinazione = &ospedale[ne->id_ospedale_destinazione];
+    _coda_pr* coda_di_destinazione = &ospedale[ne->id_ospedale_destinazione].coda[COVID];
+    paziente* paziente_trasferito = ne->paziente_trasferito;
+    double tempo_di_arrivo = ne->tempo_ne;
+
+    // porta il paziente dentro la coda dell'ospedale di arrivo e 
+    // prova a muovere un paziente dalla coda ad un letto
+    aggiungi_paziente(coda_di_destinazione, paziente_trasferito, TRASFERITO);
+    prova_muovi_paziente_in_letto(ospedale_di_destinazione, tempo_di_arrivo, COVID, 0);
+
+    // rimuovo il paziente dalla lista dei pazienti che devono essere trasferiti
+    rimuovi_da_pazienti_in_trasferimento(&testa_trasferiti, paziente_trasferito->id);
 }
 
 void aggiorna_flussi_covid(double tempo_attuale) {
@@ -440,9 +540,9 @@ void* simulation_start(void* input) {
         // del carattere "invio" prima di processare il next event
 #ifdef SIM_INTERATTIVA
         if (next_event->tempo_ne >= END)
-            step_simulazione(ospedale, NOSPEDALI, tempo_attuale, next_event, 0);
+            step_simulazione(ospedale, NOSPEDALI, tempo_attuale, next_event, testa_trasferiti, 0);
         else
-            step_simulazione(ospedale, NOSPEDALI, tempo_attuale, next_event, 1);
+            step_simulazione(ospedale, NOSPEDALI, tempo_attuale, next_event, testa_trasferiti, 1);
 #endif
         // se abilitato, cerca di aggiornare il flusso di entrata
         // nelle code covid in funzione del giorno attuale
@@ -461,6 +561,9 @@ void* simulation_start(void* input) {
         }
         else if (next_event->evento == AGGRAVAMENTO) {
             processa_aggravamento(next_event);
+        }
+        else if (next_event->evento == TRASFERIMENTO) {
+            processa_trasferimento(next_event);
         }
         tempo_attuale = next_event->tempo_ne;  // manda avanti il tempo della simulazione
 #ifdef GEN_RT

@@ -225,6 +225,28 @@ double ottieni_occupazione_reparto_covid(_ospedale* o) {
     return (letti_occupati / letti_totali) * 100;
 }
 
+double ottieni_livello_utilizzo_zona_covid(_ospedale* o) {
+
+    double letti_totali = 0;
+    double letti_occupati = 0;
+    double pazienti_covid_in_coda = 0;
+
+    for(int i=0; i<o->num_reparti[COVID]; i++) { // per ogni reparto covid dell'ospedale
+        for(int j=0; j<o->reparto[COVID][i].num_letti; j++) { // per ogni letto di quel reparto
+            
+            // conta i letti totali ed i letti occupati
+            letti_totali += 1;
+            letti_occupati += o->reparto[COVID][i].letto[j].occupato;
+        }   
+    }
+
+    for(int pr=0; pr<o->coda[COVID].livello_pr; pr++) {
+        pazienti_covid_in_coda += numero_elementi_in_coda(&o->coda[COVID], pr);
+    }
+
+    return (letti_occupati + pazienti_covid_in_coda) / letti_totali; // questa è la formula del livello di utilizzo
+}
+
 int valuta_livello_occupazione(_ospedale* o, double tempo_attuale) {
 
     // ottieni tasso di occupazione dei letti COVID di quell'ospedale

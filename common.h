@@ -5,6 +5,9 @@
 #define COVID 0					// Tipo 1
 #define NCOVID 1				// Tipo 2
 
+#define TRASFERITO 0            // tipi di ingresso nelle code
+#define DIRETTO 1                 
+
 #define NTYPE 2					// Numero tipi
 #define NRFIELD 7				// Numero del campo "Nuovi Ricoveri"
 #define SAMPLINGRATE 24.0
