@@ -51,6 +51,10 @@ typedef struct {
 #endif
 
 // variabili globali
+double tempo_trasferimento[NOSPEDALI][NOSPEDALI]; 
+double soglia_utilizzo;
+
+// variabili globali per thread
 #ifdef MAC_OS
 __thread _ospedale ospedale[NOSPEDALI];
 
@@ -75,13 +79,20 @@ thread_local double prossimo_giorno;
 thread_local double tick_per_giorno;
 #endif
 
-void inizializza_variabili(int stream) {
-    // selezione del proprio stream
-    SelectStream(stream);
-    
-    // inizializza ospedali
-    for(int i=0; i< NOSPEDALI; i++)
-        ottieni_prototipo_ospedale_1(&ospedale[i]);
+void inizializza_variabili() {
+
+    // inizializza generatore numeri casuali
+    PlantSeeds(-1);
+
+    // inizializza tempi trasferimento ospedali
+    for(int i=0; i<NOSPEDALI; i++) {
+        for(int j=0; j<NOSPEDALI; j++) {
+            if(i==j)
+                tempo_trasferimento[i][j] = 0; // ogni ospedale ha distanza 0 da se stesso
+            else
+                tempo_trasferimento[i][j] = 1; // tutti gli ospedali sono distanti 1
+        }
+    }
 
     // inizializza variabili simulazione
     timeout_paziente[COVID] = 30;
@@ -89,6 +100,18 @@ void inizializza_variabili(int stream) {
 
     servizio_paziente[COVID] = 48;
     servizio_paziente[NCOVID] = 30;
+
+    soglia_utilizzo = 0.5;
+}
+
+void inizializza_variabili_per_simulazione(int stream) {
+
+    // selezione del proprio stream
+    SelectStream(stream);
+    
+    // inizializza ospedali
+    for(int i=0; i<NOSPEDALI; i++)
+        ottieni_prototipo_ospedale_1(&ospedale[i]);
 
     tempo_attuale = START;
     tick_per_giorno = 24;
@@ -385,7 +408,7 @@ void* simulation_start(void* input) {
 #ifdef AUDIT
     printf("Simulation: %d - STARTED\n", in);
 #endif
-    inizializza_variabili(in);
+    inizializza_variabili_per_simulazione(in);
     inizializza_csv_globali();
 #ifdef GEN_RT
     inizializza_csv_code_rt(in);
@@ -447,8 +470,6 @@ int inizializza_simulazioni() {
     getchar();
     if (select <= 0 || select >= MAXNSIMULATION || ret != 1) goto r_menu;
 
-    // inizializza generatore numeri casuali
-    PlantSeeds(-1);
     int input[select];
     pthread_t tid[select];
     for (int i = 0; i < select; i++) {
@@ -480,9 +501,12 @@ int main() {
 }
 #else
 int main() {
+
+    inizializza_variabili();
+
     #ifdef SIM_INTERATTIVA
-    int init = 0;
-    simulation_start(&init);
+    int stream = 0;
+    simulation_start(&stream);
     #else
     int nsimulation = inizializza_simulazioni();
     #endif

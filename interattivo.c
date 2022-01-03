@@ -101,8 +101,8 @@ void stampa_simulazione_attuale(_ospedale* ospedale, int num_ospedali, double te
         printf("\n--- OSPEDALE %d: --------------------------", i);
         printf("\n------------------------------------------\n\n");
 
-        printf("Occupazione covid: %.2f%%\n", ottieni_occupazione_reparto_covid(&ospedale[i]));
-        printf("Ampliamento in corso: %s\nRiduzione in corso: %s\n\n", si_no_da_numero(ospedale[i].ampliamento_in_corso), si_no_da_numero(ospedale[i].riduzione_in_corso));
+        printf("Occupazione covid: %.2f%%, Livello utilizzo: %.2f\n", ottieni_occupazione_reparto_covid(&ospedale[i]), ottieni_livello_utilizzo_zona_covid(&ospedale[i]));
+        printf("Ampliamento in corso: %s, Riduzione in corso: %s\n\n", si_no_da_numero(ospedale[i].ampliamento_in_corso), si_no_da_numero(ospedale[i].riduzione_in_corso));
 
         // stampa dati storici;
 
