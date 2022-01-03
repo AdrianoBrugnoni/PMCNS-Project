@@ -28,6 +28,9 @@ typedef struct paziente {
 #ifdef MAC_OS
 __thread unsigned long next_id = 1;      // id univoco da assegnare al prossimo paziente
 __thread double timeout_paziente[NTYPE]; // tempo medio di timeout in coda per i tipi di pazienti
+#elif WIN
+__declspec(thread) unsigned long next_id = 1;      // id univoco da assegnare al prossimo paziente
+__declspec(thread) double timeout_paziente[NTYPE]; // tempo medio di timeout in coda per i tipi di pazienti
 #else
 thread_local unsigned long next_id = 1;      // id univoco da assegnare al prossimo paziente
 thread_local double timeout_paziente[NTYPE]; // tempo medio di timeout in coda per i tipi di pazienti

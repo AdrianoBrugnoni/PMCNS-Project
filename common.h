@@ -14,20 +14,10 @@
 
 #define MAXNSIMULATION STREAMS
 
-#ifdef MAC_OS
-__thread char* colonne_dati_code[] = {
+char* colonne_dati_code[] = {
                 "accessi_normali","accessi_altre_code","accessi_altri_ospedali",
                 "usciti_serviti","usciti_morti", "usciti_aggravati",
                 "permanenza_serviti", "permanenza_morti", "permanenza_aggravati", "tipo"};
-__thread char* colonne_dati_reparti[] = {
+char* colonne_dati_reparti[] = {
                 "tempo_occupazione","num_entrati",
                 "num_usciti"};
-#else
-thread_local char* colonne_dati_code[] = {
-                "accessi_normali","accessi_altre_code","accessi_altri_ospedali",
-                "usciti_serviti","usciti_morti", "usciti_aggravati",
-                "permanenza_serviti", "permanenza_morti", "permanenza_aggravati", "tipo"};
-thread_local char* colonne_dati_reparti[] = {
-                "tempo_occupazione","num_entrati",
-                "num_usciti"};
-#endif

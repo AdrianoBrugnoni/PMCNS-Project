@@ -3,8 +3,10 @@
 #include <Windows.h>
 #elif MAC_OS
 #include <pthread.h>
+#include <unistd.h>
 #else
 #include <threads.h>
+#include <unistd.h>
 #endif
 #include <limits.h>
 #include <sys/stat.h>
@@ -12,7 +14,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <unistd.h>
 #include <math.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -62,6 +63,17 @@ __thread int* fd_reparti[NOSPEDALI];
 __thread double tempo_attuale;
 __thread double prossimo_giorno;
 __thread double tick_per_giorno;
+#elif WIN
+__declspec(thread) _ospedale ospedale[NOSPEDALI];
+
+__declspec(thread) int fd_code_globale;
+__declspec(thread) int fd_reparti_globale;
+__declspec(thread) int* fd_code[NOSPEDALI];
+__declspec(thread) int* fd_reparti[NOSPEDALI];
+
+__declspec(thread) double tempo_attuale;
+__declspec(thread) double prossimo_giorno;
+__declspec(thread) double tick_per_giorno;
 #else
 thread_local _ospedale ospedale[NOSPEDALI];
 
@@ -276,7 +288,11 @@ void inizializza_csv_code_rt(int numero_simulazione) {
 
     strcpy(base_titolo1, directory_base);
     strcat(base_titolo1, int_to_string(numero_simulazione));
+#ifdef WIN
+    mkdir(base_titolo1);
+#else
     mkdir_p(base_titolo1);
+#endif
     strcat(base_titolo1, "/");
     strcat(base_titolo1, "dati_ospedale");
     for (int i = 0; i < NOSPEDALI; i++) {
@@ -377,7 +393,7 @@ void genera_output_parziale() {
 
 void distruttore() {
     // Chiudi tutti i canali di I/O
-    _close();
+    __close();
 }
 
 void* simulation_start(void* input) {
@@ -450,12 +466,20 @@ int inizializza_simulazioni() {
 
     // inizializza generatore numeri casuali
     PlantSeeds(-1);
+
+#ifdef WIN
+    int* input = (int*)malloc(sizeof(int) * select);
+    HANDLE* hThread = (HANDLE*)malloc(sizeof(HANDLE) * select);
+    DWORD* tid = (DWORD*)malloc(sizeof(DWORD) * select);
+#else
     int input[select];
     pthread_t tid[select];
+#endif
     for (int i = 0; i < select; i++) {
         input[i] = i;
         #ifdef WIN
-        if ((CreateThread(NULL, 0, simulation_start, NULL, 0, NULL)) == NULL) {
+        hThread[i] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)simulation_start, (LPVOID)NULL, NORMAL_PRIORITY_CLASS, tid);
+        if (hThread[i] == NULL) {
             printf("Impossibile creare il thread. Errore: %d\n", ret);
             fflush(stdout);
             exit(-1);
@@ -469,8 +493,15 @@ int inizializza_simulazioni() {
         }
         #endif
     }
+#ifdef WIN
+    for (int i = 0; i < select; i++)
+        WaitForSingleObject(hThread[i], INFINITE);
+#else
     for (int i = 0; i < select; i++)
         pthread_join(tid[i], NULL);
+#endif
+
+
     return select;
 }
 

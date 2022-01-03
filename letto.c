@@ -17,6 +17,8 @@ typedef struct {
 
 #ifdef MAC_OS
 __thread double servizio_paziente[NTYPE];    // tempo medio di servizio nel letto per i tipi di pazienti
+#elif WIN
+__declspec(thread) double servizio_paziente[NTYPE];    // tempo medio di servizio nel letto per i tipi di pazienti
 #else
 thread_local double servizio_paziente[NTYPE];    // tempo medio di servizio nel letto per i tipi di pazienti
 #endif
