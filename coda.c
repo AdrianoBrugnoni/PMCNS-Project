@@ -2,17 +2,17 @@
 
 typedef struct {    // dati per un singolo livello di priorità della coda
 
-        unsigned long accessi_normali;          // numero pazienti che accedono alla coda con la modalità classica
-        unsigned long accessi_altre_code;       // numero pazienti che accedono alla coda per via di un aggravamento in un'altra coda
-        unsigned long accessi_altri_ospedali;   // numero pazienti che accedono alla coda per trasferimento da un altro ospedale
+    unsigned long accessi_normali;          // numero pazienti che accedono alla coda con la modalità classica
+    unsigned long accessi_altre_code;       // numero pazienti che accedono alla coda per via di un aggravamento in un'altra coda
+    unsigned long accessi_altri_ospedali;   // numero pazienti che accedono alla coda per trasferimento da un altro ospedale
 
-        unsigned long usciti_serviti;           // numero pazienti che lasciano la coda poichè portati in un letto
-        unsigned long usciti_morti;             // numero pazienti che lasciano la coda poichè morti
-        unsigned long usciti_aggravati;         // numero pazienti che lasciano la coda poichè aggravati e portati a priorità maggiore
+    unsigned long usciti_serviti;           // numero pazienti che lasciano la coda poichè portati in un letto
+    unsigned long usciti_morti;             // numero pazienti che lasciano la coda poichè morti
+    unsigned long usciti_aggravati;         // numero pazienti che lasciano la coda poichè aggravati e portati a priorità maggiore
 
-        double permanenza_serviti;              // tempo complessivo passato in coda dai pazienti che vengono serviti
-        double permanenza_morti;                // tempo complessivo passato in coda dai pazienti che muoiono
-        double permanenza_aggravati;            // tempo complessivo passato in coda dai pazienti che abbandonano la coda per aggravamento
+    double permanenza_serviti;              // tempo complessivo passato in coda dai pazienti che vengono serviti
+    double permanenza_morti;                // tempo complessivo passato in coda dai pazienti che muoiono
+    double permanenza_aggravati;            // tempo complessivo passato in coda dai pazienti che abbandonano la coda per aggravamento
 } dati_coda;
 
 typedef struct {

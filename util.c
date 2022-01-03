@@ -1,21 +1,44 @@
 /****Variabili globali csv manager*****/
 enum { NOMEM = -2 };
+#ifdef MAC_OS
+__thread static char* line = NULL;		// caratteri input
+__thread static char* sline = NULL;		// copia linea per split
+__thread static int  maxline = 0;
+__thread static char** field = NULL;
+__thread static int  maxfield = 0;
+__thread static int  nfield = 0;
+#else
 thread_local static char* line = NULL;		// caratteri input
 thread_local static char* sline = NULL;		// copia linea per split
 thread_local static int  maxline = 0;
 thread_local static char** field = NULL;
 thread_local static int  maxfield = 0;
 thread_local static int  nfield = 0;
+#endif
+
 #ifdef MSEXEL
+#ifdef MAC_OS
+__thread char sep[] = ",";
+#else
 thread_local char sep[] = ",";
+#endif
+#else
+#ifdef MAC_OS
+__thread static char fieldsep[] = ";";	// separatore dei campi
 #else
 thread_local static char fieldsep[] = ";";	// separatore dei campi
+#endif
 #endif
 static char* nextsep(char*);
 static int split(void);
 /*************************************/
+#ifdef MAC_OS
+__thread int estrazione_dati;				// variabile booleana che memorizza se i dati sono stati estratti o meno.
+__thread FILE* csv;
+#else
 thread_local int estrazione_dati;				// variabile booleana che memorizza se i dati sono stati estratti o meno.
 thread_local FILE* csv;
+#endif
 
 int minv(int a, int b) {
     if (a > b)
@@ -38,6 +61,29 @@ int tipo_esiste(int tipo) {
         return 1;
 }
 
+char* nome_da_tipo(int tipo) {
+    if(tipo == COVID)
+        return "covid";
+    else
+        return "generale";
+}
+
+char* nome_coda(int tipo, int pr) {
+    if(tipo == COVID) {
+        if(pr == 0)
+            return "giovani";
+        else if(pr == 1) 
+            return "adulti";
+        else
+            return "anziani";
+    } else {
+        if(pr == 0)
+            return "urgenti";
+        else
+            return "sostenibili";
+    }
+}
+
 char int_to_char(int val) {
     return val + '0';
 }
@@ -55,7 +101,7 @@ char* int_to_string(int val) {
 	return str;
 }
 
-// crea directory path e ritorna 0 se esiste gi�
+// crea directory path e ritorna 0 se esiste già
 int mkdir_p(const char* path) {
 	const size_t len = strlen(path);
 	char _path[PATH_MAX];
@@ -90,8 +136,17 @@ int inizializza_csv(char* nome_csv, char** colonne, int num_colonne) {
     int char_index;
 	int ret;
     fd = open(nome_csv, O_TRUNC|O_RDWR|O_CREAT, 0666);
+    if(fd == -1) {
+        printf("Errore creazione file %s, chiusura del programma (errno %d)\n", nome_csv, errno);
+        fflush(stdout);
+		exit(0);
+    } else {
+        printf("Creazione file %s avvenuta, fd: %d\n", nome_csv, fd);
+    }
 #ifdef MSEXEL
 	if ((ret = write(fd, "sep=,\n", 6)) == -1) {
+        printf("Errore scrittura file (cod 0), chiusura del programma (errno %d)\n", errno);
+        fflush(stdout);
 		exit(0);
 	}
 #endif
@@ -99,15 +154,21 @@ int inizializza_csv(char* nome_csv, char** colonne, int num_colonne) {
         char_index = 0;
         while (colonne[i][char_index] != '\0') {
 			if ((ret = write(fd, (char*)&colonne[i][char_index], 1)) == -1) {
+                printf("Errore scrittura file %d (cod 1), chiusura del programma (errno %d)\n", fd, errno);
+                fflush(stdout);
 				exit(0);
 			}
             char_index++;
         }
 		if ((ret = write(fd, fieldsep, 1)) == -1) {
+            printf("Errore scrittura file %d (cod 2), chiusura del programma (errno %d)\n", fd, errno);
+            fflush(stdout);
 			exit(0);
 		}
     }
 	if ((ret = write(fd, "\n", 1)) == -1) {
+        printf("Errore scrittura file %d (cod 3), chiusura del programma (errno %d)\n", fd, errno);
+        fflush(stdout);
 		exit(0);
 	}
     return fd;
@@ -120,15 +181,21 @@ int riempi_csv(int fd, char** elemento, int num_colonne) {
 		char_index = 0;
 		while (*(*(elemento + i) + char_index) != '\0') {
 			if ((ret = write(fd, *(elemento + i) + char_index, 1)) == -1) {
+            printf("Errore scrittura file %d (cod 4), chiusura del programma (errno %d)\n", fd, errno);
+                fflush(stdout);
 				exit(0);
 			}
 			char_index++;
 		}
 		if ((ret = write(fd, fieldsep, 1)) == -1) {
+            printf("Errore scrittura file %d (cod 5), chiusura del programma (errno %d)\n", fd, errno);
+            fflush(stdout);
 			exit(0);
 		}
 	}
 	if ((ret = write(fd, "\n", 1)) == -1) {
+        printf("Errore scrittura file %d (cod 6), chiusura del programma (errno %d)\n", fd, errno);
+        fflush(stdout);
 		exit(0);
 	}
     return 0;

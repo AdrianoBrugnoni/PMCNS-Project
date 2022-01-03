@@ -15,7 +15,11 @@ Compilare con "-lm";
 #define DEFAULT    123456789    /*Seme di default*/
 
 static long seed[STREAMS] = { DEFAULT };
-thread_local static int  stream = 0;
+#ifdef MAC_OS
+__thread static int stream = 0;
+#else
+thread_local static int stream = 0;
+#endif
 static int  initialized = 0;
 
 double Random(void);

@@ -1,28 +1,5 @@
 double tempo_stop = -1;
 
-char* nome_da_tipo(int tipo) {
-    if(tipo == COVID)
-        return "covid";
-    else
-        return "generale";
-}
-
-char* nome_coda(int tipo, int pr) {
-    if(tipo == COVID) {
-        if(pr == 0)
-            return "giovani";
-        else if(pr == 1) 
-            return "adulti";
-        else
-            return "anziani";
-    } else {
-        if(pr == 0)
-            return "urgenti";
-        else
-            return "sostenibili";
-    }
-}
-
 char* nome_evento(int codice_evento) {
     if(codice_evento == ARRIVO)
         return "ARRIVO";
