@@ -5,6 +5,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #else
+#include <pthread.h>
 #include <threads.h>
 #include <unistd.h>
 #endif
@@ -123,8 +124,9 @@ void inizializza_variabili() {
     servizio_paziente[NCOVID] = 30;
 
     soglia_utilizzo = 0.5;
-
+#ifdef SIM_INTERATTIVA
     ultimo_trasferimento.analizzato = 1;
+#endif
 }
 
 void inizializza_variabili_per_simulazione(int stream) {
@@ -643,7 +645,6 @@ int main() {
     #else
     int nsimulation = inizializza_simulazioni();
     #endif
-
     return 0;
 }
 #endif
