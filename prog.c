@@ -521,11 +521,11 @@ void distruttore() {
 }
 
 void* simulation_start(void* input) {
-
     int in = *((int*)input);
 #ifdef AUDIT
     printf("Simulation: %d - STARTED\n", in);
 #endif
+
     inizializza_variabili_per_simulazione(in);
     inizializza_csv_globali();
 #ifdef GEN_RT
@@ -602,7 +602,7 @@ int inizializza_simulazioni() {
     for (int i = 0; i < select; i++) {
         input[i] = i;
         #ifdef WIN
-        hThread[i] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)simulation_start, (LPVOID)NULL, NORMAL_PRIORITY_CLASS, tid);
+        hThread[i] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)simulation_start, (LPVOID)&input[i], NORMAL_PRIORITY_CLASS, tid);
         if (hThread[i] == NULL) {
             printf("Impossibile creare il thread. Errore: %d\n", ret);
             fflush(stdout);
