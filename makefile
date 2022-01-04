@@ -1,20 +1,32 @@
-flag_fissi=-DGEN_RT -lpthread -lm
+flag_fissi=-DGEN_RT -DPROTOTIPO1
 flag_normali=-DTERAPIE_VARIABILI -DFLUSSO_COVID_VARIABILE -DABILITA_AGGRAVAMENTO -DABILITA_TIMEOUT
 nome_eseguibile=prog
 
+ifeq ($(OS),Windows_NT)
+	CFLAGS += -DWIN
+	CC = cl
+else ifeq ($(OS),Darwin)
+	CFLAGS += -DMAC_OS
+	CC = gcc -o $(nome_eseguibile)
+	CCFLAGS += -lpthread -lm
+else
+	CC = gcc -o $(nome_eseguibile)
+	CCFLAGS += -lpthread -lm
+endif
+
 compile:
-	gcc -o $(nome_eseguibile) prog.c $(CFLAGS) $(flag_fissi) $(flag_normali) -DCOOPERAZIONE_OSPEDALI -DSIM_INTERATTIVA
+	$(CC) prog.c $(CCFLAGS) $(CFLAGS) $(flag_fissi) $(flag_normali) -DCOOPERAZIONE_OSPEDALI -DSIM_INTERATTIVA
 semplice:
-	gcc -o $(nome_eseguibile) prog.c $(CFLAGS) $(flag_fissi) -DSIM_INTERATTIVA
+	$(CC) prog.c $(CCFLAGS) $(CFLAGS) $(flag_fissi) -DSIM_INTERATTIVA
 semplice_n:
-	gcc -o $(nome_eseguibile) prog.c $(CFLAGS) $(flag_fissi)
+	$(CC) prog.c $(CCFLAGS) $(CFLAGS) $(flag_fissi)
 normale:
-	gcc -o $(nome_eseguibile) prog.c $(CFLAGS) $(flag_fissi) $(flag_normali) -DSIM_INTERATTIVA
+	$(CC) prog.c $(CCFLAGS) $(CFLAGS) $(flag_fissi) $(flag_normali) -DSIM_INTERATTIVA
 normale_n:
-	gcc -o $(nome_eseguibile) prog.c $(CFLAGS) $(flag_fissi) $(flag_normali)
+	$(CC) prog.c $(CCFLAGS) $(CFLAGS) $(flag_fissi) $(flag_normali)
 migliorativo:
-	gcc -o $(nome_eseguibile) prog.c $(CFLAGS) $(flag_fissi) $(flag_normali) -DCOOPERAZIONE_OSPEDALI -DSIM_INTERATTIVA
+	$(CC) prog.c $(CCFLAGS) $(CFLAGS) $(flag_fissi) $(flag_normali) -DCOOPERAZIONE_OSPEDALI -DSIM_INTERATTIVA
 migliorativo_n:
-	gcc -o $(nome_eseguibile) prog.c $(CFLAGS) $(flag_fissi) $(flag_normali) -DCOOPERAZIONE_OSPEDALI
+	$(CC) prog.c $(CCFLAGS) $(CFLAGS) $(flag_fissi) $(flag_normali) -DCOOPERAZIONE_OSPEDALI
 stat:
-	gcc -o teststat stat.c -DTESTSTAT
+	$(CC) teststat stat.c -DTESTSTAT
