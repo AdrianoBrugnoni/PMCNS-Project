@@ -15,6 +15,13 @@
 #define NCOLONNECODE 10
 #define NCOLONNEREPARTI 3
 
+#ifdef PROTOTIPO1
+#define NCODECOVID 3
+#define NCODENCOVID 2
+#elif PROTOTIPO2
+#endif
+
+
 #define MAXNSIMULATION STREAMS
 
 char* colonne_dati_code[] = {

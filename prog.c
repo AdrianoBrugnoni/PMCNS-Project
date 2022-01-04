@@ -136,7 +136,7 @@ void inizializza_variabili_per_simulazione(int stream) {
     
     // inizializza ospedali
     for(int i=0; i<NOSPEDALI; i++)
-        ottieni_prototipo_ospedale_1(&ospedale[i]);
+        inizializza_ospedale(&ospedale[i]);
 
     tempo_attuale = START;
     tick_per_giorno = 24;
@@ -589,7 +589,7 @@ int inizializza_simulazioni() {
     fflush(stdout);
     ret = scanf("%d", &select);
     getchar();
-    if (select <= 0 || select >= MAXNSIMULATION || ret != 1) goto r_menu;
+    if (select <= 0 || select >= (MAXNSIMULATION/(NOSPEDALI*(2+NCODECOVID+NCODENCOVID)))-1 || ret != 1) goto r_menu;  // 2 sta per i due file corrispondenti alle due tipologie di reparti
 
 #ifdef WIN
     int* input = (int*)malloc(sizeof(int) * select);

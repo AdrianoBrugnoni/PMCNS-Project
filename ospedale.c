@@ -23,12 +23,12 @@ typedef struct {
 void evento_occupazione_cambiata(_ospedale*, double, int);
 
 
-void ottieni_prototipo_ospedale_1(_ospedale* o) {
+void inizializza_ospedale(_ospedale* o) {
 
     // definizione caratteristiche dell'ospedale
 
-    int numero_code_pr_covid = 3;
-    int numero_code_pr_normale = 2;
+    int numero_code_pr_covid = NCODECOVID;
+    int numero_code_pr_normale = NCODENCOVID;
 
     #ifdef FLUSSO_COVID_VARIABILE
     double tasso_arrivo_coda_covid = estrai_tasso_giornata(0);
