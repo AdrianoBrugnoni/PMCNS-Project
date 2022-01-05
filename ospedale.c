@@ -73,7 +73,7 @@ void inizializza_ospedale(_ospedale* o, _parametri_ospedale* param) {
 
     #ifdef FLUSSO_COVID_VARIABILE
     param->tasso_arrivo_coda_covid = estrai_tasso_giornata(0);
-    #else
+    #endif
 
     inizializza_coda_pr(&o->coda[COVID], NCODECOVID, param->tasso_arrivo_coda_covid, COVID);
     inizializza_coda_pr(&o->coda[NCOVID], NCODENCOVID, param->tasso_arrivo_coda_normale, NCOVID);
