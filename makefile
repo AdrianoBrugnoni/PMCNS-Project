@@ -5,11 +5,11 @@ nome_eseguibile=prog
 ifeq ($(OS),Windows_NT)
 	CFLAGS += -DWIN
 	CC = cl
-else ifeq ($(OS),Darwin)
+else ifeq ($(shell uname),Darwin)
 	CFLAGS += -DMAC_OS
 	CC = gcc -o $(nome_eseguibile)
 	CCFLAGS += -lpthread -lm
-else
+else ifeq ($(shell uname),Linux)
 	CC = gcc -o $(nome_eseguibile)
 	CCFLAGS += -lpthread -lm
 endif
