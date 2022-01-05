@@ -124,9 +124,10 @@ void inizializza_variabili() {
     servizio_paziente[NCOVID] = 30;
 
     soglia_utilizzo = 0.5;
-#ifdef SIM_INTERATTIVA
+    
+    #ifdef SIM_INTERATTIVA
     ultimo_trasferimento.analizzato = 1;
-#endif
+    #endif
 }
 
 void inizializza_variabili_per_simulazione(int stream) {
@@ -135,31 +136,32 @@ void inizializza_variabili_per_simulazione(int stream) {
     SelectStream(stream);
 
     // inizializza ospedali
+    _parametri_ospedale param;
     for(int i=0; i<NOSPEDALI; i++) {
 
-        _parametri_ospedale* param;
         if(i==0) {
-            param->tasso_arrivo_coda_covid = 6;
-            param->tasso_arrivo_coda_normale = 5;
-            param->letti_per_reparto = 3;
-            param->num_reparti_covid = 1;
-            param->num_min_reparti_covid = 1;
-            param->num_reparti_normali = 3;
-            param->num_min_reparti_normali = 1;
-            param->soglia_aumento = 80;
-            param->soglia_riduzione = 50;
+            param.tasso_arrivo_coda_covid = 6;
+            param.tasso_arrivo_coda_normale = 5;
+            param.letti_per_reparto = 3;
+            param.num_reparti_covid = 1;
+            param.num_min_reparti_covid = 1;
+            param.num_reparti_normali = 3;
+            param.num_min_reparti_normali = 1;
+            param.soglia_aumento = 80;
+            param.soglia_riduzione = 50;
         } else {
-            param->tasso_arrivo_coda_covid = 6;
-            param->tasso_arrivo_coda_normale = 5;
-            param->letti_per_reparto = 3;
-            param->num_reparti_covid = 1;
-            param->num_min_reparti_covid = 1;
-            param->num_reparti_normali = 3;
-            param->num_min_reparti_normali = 1;
-            param->soglia_aumento = 80;
-            param->soglia_riduzione = 50;
+            param.tasso_arrivo_coda_covid = 6;
+            param.tasso_arrivo_coda_normale = 5;
+            param.letti_per_reparto = 3;
+            param.num_reparti_covid = 1;
+            param.num_min_reparti_covid = 1;
+            param.num_reparti_normali = 3;
+            param.num_min_reparti_normali = 1;
+            param.soglia_aumento = 80;
+            param.soglia_riduzione = 50;
         }
         inizializza_ospedale(&ospedale[i], param);
+        inizializza_ospedale(&ospedale[i], &param);
     }
 
     tempo_attuale = START;
