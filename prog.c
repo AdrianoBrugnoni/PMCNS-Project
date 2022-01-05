@@ -133,10 +133,34 @@ void inizializza_variabili_per_simulazione(int stream) {
 
     // selezione del proprio stream
     SelectStream(stream);
-    
+
     // inizializza ospedali
-    for(int i=0; i<NOSPEDALI; i++)
-        inizializza_ospedale(&ospedale[i]);
+    for(int i=0; i<NOSPEDALI; i++) {
+
+        _parametri_ospedale* param;
+        if(i==0) {
+            param->tasso_arrivo_coda_covid = 6;
+            param->tasso_arrivo_coda_normale = 5;
+            param->letti_per_reparto = 3;
+            param->num_reparti_covid = 1;
+            param->num_min_reparti_covid = 1;
+            param->num_reparti_normali = 3;
+            param->num_min_reparti_normali = 1;
+            param->soglia_aumento = 80;
+            param->soglia_riduzione = 50;
+        } else {
+            param->tasso_arrivo_coda_covid = 6;
+            param->tasso_arrivo_coda_normale = 5;
+            param->letti_per_reparto = 3;
+            param->num_reparti_covid = 1;
+            param->num_min_reparti_covid = 1;
+            param->num_reparti_normali = 3;
+            param->num_min_reparti_normali = 1;
+            param->soglia_aumento = 80;
+            param->soglia_riduzione = 50;
+        }
+        inizializza_ospedale(&ospedale[i], param);
+    }
 
     tempo_attuale = START;
     tick_per_giorno = 24;
@@ -262,7 +286,7 @@ void processa_arrivo(descrittore_next_event* ne) {
     if(tipo_di_arrivo == COVID && NOSPEDALI > 1) {
 
         // utilizzo_attuale = utilizzo dell'ospedale su cui è avvenuto l'arrivo
-        // utilizzo_min = utilizzo più basso tra tutti gli ospedali in cui paziente potrebbe essere trasferito
+        // utilizzo_min = utilizzo più basso tra tutti gli altri ospedali
         // tempo_nuovo_arrivo = tempo nel quale il paziente arriverà all'ospedale prescelto
         // id_nuovo_ospedale = ospedale prescelto
 
@@ -272,19 +296,16 @@ void processa_arrivo(descrittore_next_event* ne) {
         int id_nuovo_ospedale = -1;
 
         double utilizzo_tmp;
-        double tempo_nuovo_arrivo_tmp;
 
         // cerca il valore minimo di utilizzo tra tutti gli ospedali diversi da quello su cui
         // è avvenuto l'arrivo e tra gli ospedali che possono essere raggiunti prima della morte del paziente
         for(int i=0; i<NOSPEDALI; i++) {
 
-            tempo_nuovo_arrivo_tmp = tempo_di_arrivo + ottieni_tempo_trasferimento(ne->id_ospedale, i);
-
-            if(i != ne->id_ospedale && p->timeout > tempo_nuovo_arrivo_tmp) {
+            if(i != ne->id_ospedale) {
                 utilizzo_tmp = ottieni_livello_utilizzo_zona_covid(&ospedale[i]);
                 if(utilizzo_tmp < utilizzo_min) {
                     utilizzo_min = utilizzo_tmp;
-                    tempo_nuovo_arrivo = tempo_nuovo_arrivo_tmp;
+                    tempo_nuovo_arrivo = tempo_di_arrivo + ottieni_tempo_trasferimento(ne->id_ospedale, i);
                     id_nuovo_ospedale = i;
                 }
             }

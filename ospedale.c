@@ -20,44 +20,39 @@ typedef struct {
 
 } _ospedale;
 
+typedef struct {
+
+    double tasso_arrivo_coda_covid;
+    double tasso_arrivo_coda_normale;
+    int letti_per_reparto;
+    int num_reparti_covid;
+    int num_min_reparti_covid;
+    int num_reparti_normali;
+    int num_min_reparti_normali;
+    int soglia_aumento;
+    int soglia_riduzione; // non meno di 50 se si ha num_min_reparti_covid = 1 !!!
+
+} _parametri_ospedale;
+
 void evento_occupazione_cambiata(_ospedale*, double, int);
 
 
-void inizializza_ospedale(_ospedale* o) {
+void inizializza_ospedale(_ospedale* o, _parametri_ospedale* param) {
 
     // definizione caratteristiche dell'ospedale
 
-    int numero_code_pr_covid = NCODECOVID;
-    int numero_code_pr_normale = NCODENCOVID;
-
-    #ifdef FLUSSO_COVID_VARIABILE
-    double tasso_arrivo_coda_covid = estrai_tasso_giornata(0);
-    #else
-    double tasso_arrivo_coda_covid = 6;
-    #endif
-
-    double tasso_arrivo_coda_normale = 5;
-
-    int letti_per_reparto = 3;
-    
-    int num_reparti_covid = 1;
-    int num_min_reparti_covid = 1;
-
-    int num_reparti_normali = 3;
-    int num_min_reparti_normali = 1;
-
-    o->soglia_aumento = 80; 
-    o->soglia_riduzione = 50; // non meno di 50 se si ha num_min_reparti_covid = 1 !!!
+    o->soglia_aumento = param->soglia_aumento; 
+    o->soglia_riduzione = param->soglia_riduzione;
+    o->ampliamento_in_corso = 0;
+    o->riduzione_in_corso = 0;
 
     // inizializza reparti
 
-    o->ampliamento_in_corso = 0;
-    o->riduzione_in_corso = 0;
-    o->letti_per_reparto = letti_per_reparto;
-    o->num_reparti[COVID] = num_reparti_covid;
-    o->num_reparti[NCOVID] = num_reparti_normali;
-    o->num_min_reparti[COVID] = num_min_reparti_covid;
-    o->num_min_reparti[NCOVID] = num_min_reparti_normali;
+    o->letti_per_reparto = param->letti_per_reparto;
+    o->num_reparti[COVID] = param->num_reparti_covid;
+    o->num_reparti[NCOVID] = param->num_reparti_normali;
+    o->num_min_reparti[COVID] = param->num_min_reparti_covid;
+    o->num_min_reparti[NCOVID] = param->num_min_reparti_normali;
 
     for(int tipo=0; tipo<NTYPE; tipo++) {
         o->storico[tipo].pazienti_entrati = 0;
@@ -76,8 +71,12 @@ void inizializza_ospedale(_ospedale* o) {
 
     // inizializza code con priorità
 
-    inizializza_coda_pr(&o->coda[COVID], numero_code_pr_covid, tasso_arrivo_coda_covid, COVID);
-    inizializza_coda_pr(&o->coda[NCOVID], numero_code_pr_normale, tasso_arrivo_coda_normale, NCOVID);
+    #ifdef FLUSSO_COVID_VARIABILE
+    param->tasso_arrivo_coda_covid = estrai_tasso_giornata(0);
+    #else
+
+    inizializza_coda_pr(&o->coda[COVID], NCODECOVID, param->tasso_arrivo_coda_covid, COVID);
+    inizializza_coda_pr(&o->coda[NCOVID], NCODENCOVID, param->tasso_arrivo_coda_normale, NCOVID);
 }
 
 int prova_transizione_reparto(_ospedale* o, int id_reparto, int tipo, double tempo_attuale) {
