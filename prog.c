@@ -160,7 +160,6 @@ void inizializza_variabili_per_simulazione(int stream) {
             param.soglia_aumento = 80;
             param.soglia_riduzione = 50;
         }
-        inizializza_ospedale(&ospedale[i], param);
         inizializza_ospedale(&ospedale[i], &param);
     }
 
