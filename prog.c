@@ -124,7 +124,7 @@ void inizializza_variabili() {
     servizio_paziente[NCOVID] = 30;
 
     soglia_utilizzo = 0.5;
-    
+
     #ifdef SIM_INTERATTIVA
     ultimo_trasferimento.analizzato = 1;
     #endif
@@ -294,7 +294,7 @@ void processa_arrivo(descrittore_next_event* ne) {
         double utilizzo_attuale = ottieni_livello_utilizzo_zona_covid(ospedale_di_arrivo);
         double utilizzo_min = INT_MAX;
         double tempo_nuovo_arrivo;
-        int id_nuovo_ospedale = -1;
+        int id_nuovo_ospedale;
 
         double utilizzo_tmp;
 
@@ -312,9 +312,9 @@ void processa_arrivo(descrittore_next_event* ne) {
             }
         }
 
-        // se è stato trovato almeno un ospedale abbastanza vicino che è più libero, di
-        // una certa quantità, dell'ospedale attuale allora si effettua il trasferimento
-        if(id_nuovo_ospedale != -1 && utilizzo_attuale - soglia_utilizzo > utilizzo_min) {
+        // se è stato trovato almeno un ospedale che è più libero di 
+        // una certa quantità allora si effettua il trasferimento
+        if(utilizzo_attuale - soglia_utilizzo > utilizzo_min) {
 
             p->ingresso = tempo_nuovo_arrivo;
 
@@ -394,10 +394,19 @@ void processa_trasferimento(descrittore_next_event* ne) {
     paziente* paziente_trasferito = ne->paziente_trasferito;
     double tempo_di_arrivo = ne->tempo_ne;
 
-    // porta il paziente dentro la coda dell'ospedale di arrivo e 
-    // prova a muovere un paziente dalla coda ad un letto
-    aggiungi_paziente(coda_di_destinazione, paziente_trasferito, TRASFERITO);
-    prova_muovi_paziente_in_letto(ospedale_di_destinazione, tempo_di_arrivo, COVID, 0);
+    // il paziente trasferito è appena acceduto all'ospedale di destinazione
+    // controllo se il paziente è ancora vivo
+    if(paziente_trasferito->timeout > tempo_di_arrivo) {
+        
+        // porta il paziente dentro la coda dell'ospedale di arrivo e 
+        // prova a muovere un paziente dalla coda ad un letto
+        aggiungi_paziente(coda_di_destinazione, paziente_trasferito, TRASFERITO);
+        prova_muovi_paziente_in_letto(ospedale_di_destinazione, tempo_di_arrivo, COVID, 0);
+    } else {
+        
+        // il paziente non è sopravvissuto al viaggio
+        segnala_morte_in_trasferimento(coda_di_destinazione, paziente_trasferito->classe_eta);
+    }
 
     // rimuovo il paziente dalla lista dei pazienti che devono essere trasferiti
     rimuovi_da_pazienti_in_trasferimento(&testa_trasferiti, paziente_trasferito->id);

@@ -147,6 +147,11 @@ void aggiungi_paziente(_coda_pr* coda, paziente* p, int tipo_ingresso) {
         coda->dati[num_coda].accessi_normali++;
 }
 
+void segnala_morte_in_trasferimento(_coda_pr* coda, int pr) {
+    coda->dati[pr].accessi_altri_ospedali++;
+    coda->dati[pr].usciti_morti++;
+}
+
 void rimuovi_paziente(_coda_pr* coda, int id, int pr, double tempo_attuale) {
 
     // il paziente con id specificato è morto nella coda
