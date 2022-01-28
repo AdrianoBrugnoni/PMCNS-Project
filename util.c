@@ -115,6 +115,12 @@ char* int_to_string(int val) {
 	return str;
 }
 
+char* double_to_string(double val) {
+	char* str = (char*)malloc(sizeof(char) * 12);
+	snprintf(str, 50, "%f", val);
+	return str;
+}
+
 
 #ifndef WIN
 // crea directory path e ritorna 0 se esiste già

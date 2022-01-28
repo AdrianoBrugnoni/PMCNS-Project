@@ -61,6 +61,7 @@ typedef struct {
 // variabili globali
 double tempo_trasferimento[NOSPEDALI][NOSPEDALI]; 
 double soglia_utilizzo;
+int nsimulation;
 
 // variabili globali per thread
 #ifdef MAC_OS
@@ -70,7 +71,9 @@ __thread _trasferimento* testa_trasferiti;
 __thread int fd_code_globale;
 __thread int fd_reparti_globale;
 __thread int* fd_code[NOSPEDALI];
+__thread int* fd_code_global[NOSPEDALI];
 __thread int* fd_reparti[NOSPEDALI];
+__thread int* fd_reparti_global[NOSPEDALI];
 
 __thread double tempo_attuale;
 __thread double prossimo_giorno;
@@ -82,7 +85,9 @@ __declspec(thread) _trasferimento* testa_trasferiti;
 __declspec(thread) int fd_code_globale;
 __declspec(thread) int fd_reparti_globale;
 __declspec(thread) int* fd_code[NOSPEDALI];
+__declspec(thread) int* fd_code_global[NOSPEDALI];
 __declspec(thread) int* fd_reparti[NOSPEDALI];
+__declspec(thread) int* fd_reparti_global[NOSPEDALI];
 
 __declspec(thread) double tempo_attuale;
 __declspec(thread) double prossimo_giorno;
@@ -94,7 +99,9 @@ thread_local _trasferimento* testa_trasferiti;
 thread_local int fd_code_globale;
 thread_local int fd_reparti_globale;
 thread_local int* fd_code[NOSPEDALI];
+thread_local int* fd_code_global[NOSPEDALI];
 thread_local int* fd_reparti[NOSPEDALI];
+thread_local int* fd_reparti_global[NOSPEDALI];
 
 thread_local double tempo_attuale;
 thread_local double prossimo_giorno;
@@ -423,21 +430,11 @@ void aggiorna_flussi_covid(double tempo_attuale) {
     }
 }
 
-void genera_output_globale() {
-    // Necessario?
-}
-
-void inizializza_csv_globali() {
-    fd_code_globale = inizializza_csv("output/dati_ospedale_code_globali.csv", (char**)colonne_dati_code, NCOLONNECODE);
-    fd_reparti_globale = inizializza_csv("output/dati_ospedale_reparti_globali.csv", (char**)colonne_dati_reparti, NCOLONNEREPARTI);
-}
-
 // inizializzazione dei csv che memorizzano i dati real-time(RT) inerenti le code
-void inizializza_csv_code_rt(int numero_simulazione) {
+void inizializza_csv_code(int numero_simulazione, char* estensione) {
     char* directory_base = "./output/";
-    char base_titolo1[27];
+    char base_titolo1[100];
     char* base_titolo2 = "_coda";
-    char* estensione = ".csv";
     char titolo1[100];
     char titolo2[100];
 
@@ -452,27 +449,36 @@ void inizializza_csv_code_rt(int numero_simulazione) {
     strcat(base_titolo1, "/");
     strcat(base_titolo1, "dati_ospedale");
     for (int i = 0; i < NOSPEDALI; i++) {
-        fd_code[i] = (int*)malloc(sizeof(int) * (ospedale[i].coda[COVID].livello_pr + ospedale[i].coda[NCOVID].livello_pr));
+        if(!strstr(estensione,"global"))
+            fd_code[i] = (int*)malloc(sizeof(int) * (ospedale[i].coda[COVID].livello_pr + ospedale[i].coda[NCOVID].livello_pr));
+        else
+            fd_code_global[i] = (int*)malloc(sizeof(int) * (ospedale[i].coda[COVID].livello_pr + ospedale[i].coda[NCOVID].livello_pr));
         strcpy(titolo1, base_titolo1);
         strcat(titolo1, int_to_string(i));
-        for (int pr = 0; pr < ospedale[i].coda[COVID].livello_pr + ospedale[i].coda[NCOVID].livello_pr; pr++) {
-            strcpy(titolo2, titolo1);
-            strcat(titolo2, base_titolo2);
-            strcat(titolo2, int_to_string(pr));
-            strcat(titolo2, estensione);
-            fd_code[i][pr] = inizializza_csv(titolo2, (char**)colonne_dati_code, NCOLONNECODE);
+        for (int t = 0; t < NTYPE; t++) {
+            for (int pr = 0; pr < ospedale[i].coda[t].livello_pr; pr++) {
+                strcpy(titolo2, titolo1);
+                strcat(titolo2, base_titolo2);
+                strcat(titolo2, "_");
+                strcat(titolo2, nome_coda(t, pr));
+                strcat(titolo2, estensione);
+                if (!strstr(estensione, "global"))
+                    fd_code[i][3*t+pr] = inizializza_csv(titolo2, (char**)colonne_dati_code, NCOLONNECODE);
+                else
+                    fd_code_global[i][3*t+pr] = inizializza_csv(titolo2, (char**)colonne_dati_code, NCOLONNECODE);
+            }
         }
+
     }
 }
 
 // inizializzazione dei csv che memorizzano i dati real-time(RT) inerenti i reparti
-void inizializza_csv_reparti_rt(int numero_simulazione) {
+void inizializza_csv_reparti(int numero_simulazione, char* estensione) {
     char* directory_base = "./output/";
     char base_titolo1[27];
     char* base_titolo2 = "_reparto";
-    char* estensione = ".csv";
-    char titolo1[27];
-    char titolo2[41];
+    char titolo1[100];
+    char titolo2[100];
 
 
     strcpy(base_titolo1, directory_base);
@@ -480,20 +486,27 @@ void inizializza_csv_reparti_rt(int numero_simulazione) {
     strcat(base_titolo1, "/");
     strcat(base_titolo1, "dati_ospedale");
     for (int i = 0; i < NOSPEDALI; i++) {
-        fd_reparti[i] = (int*)malloc(sizeof(int) * NTYPE);
+        if (!strstr(estensione, "global"))
+            fd_reparti[i] = (int*)malloc(sizeof(int) * NTYPE);
+        else
+            fd_reparti_global[i] = (int*)malloc(sizeof(int) * NTYPE);
         strcpy(titolo1, base_titolo1);
         strcat(titolo1, int_to_string(i));
         for (int t = 0; t < NTYPE; t++) {
             strcpy(titolo2, titolo1);
             strcat(titolo2, base_titolo2);
-            strcat(titolo2, int_to_string(t));
+            strcat(titolo2, "_");
+            strcat(titolo2, nome_da_tipo(t));
             strcat(titolo2, estensione);
-            fd_reparti[i][t] = inizializza_csv(titolo2, (char**)colonne_dati_reparti, NCOLONNEREPARTI);
+            if (!strstr(estensione, "global"))
+                fd_reparti[i][t] = inizializza_csv(titolo2, (char**)colonne_dati_reparti, NCOLONNEREPARTI);
+            else
+                fd_reparti_global[i][t] = inizializza_csv(titolo2, (char**)colonne_dati_reparti, NCOLONNEREPARTI);
         }
     }
 }
 
-void genera_output_parziale() {
+void genera_output(int tipo_output) {
 
     // salvataggio dati code
     char** dati = (char**)malloc(sizeof(char*) * NCOLONNECODE);
@@ -512,7 +525,22 @@ void genera_output_parziale() {
                 dati[7] = int_to_string(ospedale[i].coda[t].dati[pr].permanenza_morti);
                 dati[8] = int_to_string(ospedale[i].coda[t].dati[pr].permanenza_aggravati);
                 dati[9] = int_to_string(t);
-                riempi_csv(fd_code[i][index], dati, NCOLONNECODE);
+                dati[10] = double_to_string(ospedale[i].coda[t].dati[pr].area / tempo_attuale);     //pazienti medi
+                if(ospedale[i].coda[t].dati[pr].accessi_normali +                                   //attesa media
+                   ospedale[i].coda[t].dati[pr].accessi_altre_code + 
+                   ospedale[i].coda[t].dati[pr].accessi_altri_ospedali != 0)
+                {
+                    dati[11] = double_to_string(ospedale[i].coda[t].dati[pr].area / (ospedale[i].coda[t].dati[pr].accessi_normali+
+                                                                                    ospedale[i].coda[t].dati[pr].accessi_altre_code+
+                                                                                    ospedale[i].coda[t].dati[pr].accessi_altri_ospedali));
+                }
+                else
+                    dati[11] = double_to_string(0.0);
+                dati[12] = double_to_string(tempo_attuale);                                         //tempo simulazione
+                if(tipo_output == 0)
+                    riempi_csv(fd_code[i][index], dati, NCOLONNECODE);
+                else
+                    riempi_csv(fd_code_global[i][index], dati, NCOLONNECODE);
                 for (int k = 0; k < NCOLONNECODE; k++)
                    free(dati[k]);
                 index++;
@@ -536,7 +564,10 @@ void genera_output_parziale() {
             dati[0] = int_to_string(dati_temp[0]);
             dati[1] = int_to_string(dati_temp[1]);
             dati[2] = int_to_string(dati_temp[2]);
-            riempi_csv(fd_reparti[i][t], dati, NCOLONNEREPARTI);
+            if (tipo_output == 0)
+                riempi_csv(fd_reparti[i][t], dati, NCOLONNEREPARTI);
+            else
+                riempi_csv(fd_reparti_global[i][t], dati, NCOLONNEREPARTI);
             for (int k = 0; k < NCOLONNEREPARTI; k++) {
                 free(dati[k]);
                 dati_temp[k] = 0;
@@ -546,9 +577,64 @@ void genera_output_parziale() {
     free(dati);
 }
 
+void genera_output_parziale() {
+    genera_output(0);
+}
+
+void genera_output_globale() {
+    genera_output(1);
+}
+
 void distruttore() {
-    // Chiudi tutti i canali di I/O
+    char command[500];
+    char path[50];
+    //pulisco output directory
+    for (int i = 0; i < nsimulation; i++) {
+        strcpy(path, "./output/");
+        strcat(path, int_to_string(i));
+        strcat(path, "/output_globale");
+#ifdef WIN
+        mkdir(path);
+        strcpy(command, "$startPath = '.\\output\\");
+        strcat(command, int_to_string(i));
+        strcat(command, "'\n");
+        strcat(command, "$magicWord = 'global'\nforeach($file in Get-ChildItem $startPath -File)\n{\nif($file.Name -match $magicWord)\n{\nMove-Item \".\\output\\");
+        strcat(command, int_to_string(i));
+        strcat(command, "\\$file\" .\\output\\");
+        strcat(command, int_to_string(i));
+        strcat(command, "\\test\n}\n}\n");
+#else
+
+        mkdir_p(path);
+        strcpy(command, "for f in ./output/");
+        strcat(command, int_to_string(i));
+        strcat(command, "/*global*; do mv \"$f\" ./output/");
+        strcat(command, int_to_string(i));
+        strcat(command, "/output_globale; done");
+#endif
+        system(command);
+        memset(path, 0, strlen(path));
+        memset(command, 0, strlen(command));
+    }
+    // Chiudi tutti i canali di I/O  
     __close();
+}
+
+void update_area(double time_next_event) {
+
+    for (int i = 0; i < NOSPEDALI; i++) {
+        for (int t = 0; t < NTYPE; t++) {
+            for (int pr = 0; pr < ospedale[i].coda[t].livello_pr; pr++) {
+                ospedale[i].coda[t].dati[pr].area += ((time_next_event - tempo_attuale) * (ospedale[i].coda[t].dati[pr].accessi_normali +
+                                                                                          ospedale[i].coda[t].dati[pr].accessi_altre_code +
+                                                                                          ospedale[i].coda[t].dati[pr].accessi_altri_ospedali -
+                                                                                          ospedale[i].coda[t].dati[pr].usciti_serviti -
+                                                                                          ospedale[i].coda[t].dati[pr].usciti_morti -
+                                                                                          ospedale[i].coda[t].dati[pr].usciti_aggravati));
+            }
+        }
+    }
+
 }
 
 void* simulation_start(void* input) {
@@ -558,10 +644,11 @@ void* simulation_start(void* input) {
 #endif
 
     inizializza_variabili_per_simulazione(in);
-    inizializza_csv_globali();
+    inizializza_csv_code(in,"_globali.csv");
+    inizializza_csv_reparti(in, "_globali.csv");
 #ifdef GEN_RT
-    inizializza_csv_code_rt(in);
-    inizializza_csv_reparti_rt(in);
+    inizializza_csv_code(in,".csv");
+    inizializza_csv_reparti(in, ".csv");
 #endif
     descrittore_next_event* next_event = malloc(sizeof(descrittore_next_event));
     while (tempo_attuale < END) {
@@ -598,6 +685,7 @@ void* simulation_start(void* input) {
         else if (next_event->evento == TRASFERIMENTO) {
             processa_trasferimento(next_event);
         }
+        update_area(next_event->tempo_ne);
         tempo_attuale = next_event->tempo_ne;  // manda avanti il tempo della simulazione
 #ifdef GEN_RT
         genera_output_parziale();
@@ -621,7 +709,7 @@ int inizializza_simulazioni() {
     ret = scanf("%d", &select);
     getchar();
     if (select <= 0 || select >= (MAXNSIMULATION/(NOSPEDALI*(2+NCODECOVID+NCODENCOVID)))-1 || ret != 1) goto r_menu;  // 2 sta per i due file corrispondenti alle due tipologie di reparti
-
+    nsimulation = select;
 #ifdef WIN
     int* input = (int*)malloc(sizeof(int) * select);
     HANDLE* hThread = (HANDLE*)malloc(sizeof(HANDLE) * select);
@@ -674,7 +762,7 @@ int main() {
     int stream = 0;
     simulation_start(&stream);
     #else
-    int nsimulation = inizializza_simulazioni();
+    inizializza_simulazioni();
     #endif
     return 0;
 }

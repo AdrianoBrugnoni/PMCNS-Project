@@ -12,7 +12,7 @@
 #define NRFIELD 7				// Numero del campo "Nuovi Ricoveri"
 #define SAMPLINGRATE 24.0
 
-#define NCOLONNECODE 10
+#define NCOLONNECODE 13
 #define NCOLONNEREPARTI 3
 
 #define NCODECOVID 3
@@ -23,7 +23,9 @@
 char* colonne_dati_code[] = {
                 "accessi_normali","accessi_altre_code","accessi_altri_ospedali",
                 "usciti_serviti","usciti_morti", "usciti_aggravati",
-                "permanenza_serviti", "permanenza_morti", "permanenza_aggravati", "tipo"};
+                "permanenza_serviti", "permanenza_morti", "permanenza_aggravati", 
+                "tipo", "pazienti medi", "attesa media", 
+                "tempo simulazione"};
 char* colonne_dati_reparti[] = {
                 "tempo_occupazione","num_entrati",
                 "num_usciti"};
