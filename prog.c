@@ -551,19 +551,21 @@ void genera_output(int tipo_output) {
 
     // salvataggio dati reparti
     dati = (char**)malloc(sizeof(char*) * NCOLONNEREPARTI);
-    int dati_temp[NCOLONNEREPARTI] = { 0 };
+    double dati_temp[NCOLONNEREPARTI] = { 0.0 };
     for (int i = 0; i < NOSPEDALI; i++) {
         for (int t = 0; t < NTYPE; t++) {
             for (int j = 0; j < ospedale[i].num_reparti[t]; j++) {
                 for (int k = 0; k < ospedale[i].reparto[t][j].num_letti; k++) {
-                    dati_temp[0] += (ospedale[i].reparto[t][j].letto[k].tempo_occupazione);
-                    dati_temp[1] += (ospedale[i].reparto[t][j].letto[k].num_entrati);
-                    dati_temp[2] += (ospedale[i].reparto[t][j].letto[k].num_usciti);
+                    dati_temp[0] += ((double)ospedale[i].reparto[t][j].letto[k].tempo_occupazione);
+                    dati_temp[1] += ((double)ospedale[i].reparto[t][j].letto[k].num_entrati);
+                    dati_temp[2] += ((double)ospedale[i].reparto[t][j].letto[k].num_usciti);
+                    dati_temp[3] += ((double)ospedale[i].reparto[t][j].letto[k].tempo_occupazione/tempo_attuale);
                 }
             }
-            dati[0] = int_to_string(dati_temp[0]);
-            dati[1] = int_to_string(dati_temp[1]);
-            dati[2] = int_to_string(dati_temp[2]);
+            dati[0] = int_to_string((int)dati_temp[0]);
+            dati[1] = int_to_string((int)dati_temp[1]);
+            dati[2] = int_to_string((int)dati_temp[2]);
+            dati[3] = double_to_string(dati_temp[3]);
             if (tipo_output == 0)
                 riempi_csv(fd_reparti[i][t], dati, NCOLONNEREPARTI);
             else

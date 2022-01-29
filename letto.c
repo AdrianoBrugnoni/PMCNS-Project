@@ -9,7 +9,6 @@ typedef struct {
                                    Necessario poichè i letti possono cambiare funzione
                                    durante la loro vita. A me interessa solo sapere da quanto
                                    tempo un certo letto è attivo per la funzione che svolge adesso */
-
     double tempo_occupazione;   // tempo per cui il letto è stato occupato
     unsigned long num_entrati;  // numero di pazienti entrati su questo letto
     unsigned long num_usciti;   // numero di pazienti usciti da questo letto

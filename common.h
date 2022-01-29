@@ -13,7 +13,7 @@
 #define SAMPLINGRATE 24.0
 
 #define NCOLONNECODE 13
-#define NCOLONNEREPARTI 3
+#define NCOLONNEREPARTI 4
 
 #define NCODECOVID 3
 #define NCODENCOVID 2
@@ -28,4 +28,4 @@ char* colonne_dati_code[] = {
                 "tempo simulazione"};
 char* colonne_dati_reparti[] = {
                 "tempo_occupazione","num_entrati",
-                "num_usciti"};
+                "num_usciti", "utilizzazione"};
