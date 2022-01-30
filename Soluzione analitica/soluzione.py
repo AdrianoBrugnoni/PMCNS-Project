@@ -76,8 +76,6 @@ def trova_soluzione ():
     print("\tp(0)^-1 =", p[0])
     print("\tPq =", Pq)
 
-    Pq = rho
-
     # calcolo tempi medi e globali di attesa nelle code
     
     E[Tq1] = (Pq*E[S]) / (1*(1-rho1))
