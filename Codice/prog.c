@@ -526,7 +526,7 @@ void genera_output(int tipo_output) {
                 dati[8] = int_to_string(ospedale[i].coda[t].dati[pr].permanenza_aggravati);
                 dati[9] = int_to_string(t);
                 dati[10] = double_to_string(ospedale[i].coda[t].dati[pr].area / tempo_attuale);     //pazienti medi
-                dati[11] = double_to_string(ospedale[i].coda[t].dati[pr].varianza_wel_numero_pazienti/ ospedale[i].coda[t].dati[pr].index_wel_numero_pazienti);
+                dati[11] = double_to_string(sqrt(ospedale[i].coda[t].dati[pr].varianza_wel_numero_pazienti/ ospedale[i].coda[t].dati[pr].index_wel_numero_pazienti));  //varianza num pazienti
                 if(ospedale[i].coda[t].dati[pr].accessi_normali +                                   //attesa media
                    ospedale[i].coda[t].dati[pr].accessi_altre_code + 
                    ospedale[i].coda[t].dati[pr].accessi_altri_ospedali != 0)
@@ -537,7 +537,7 @@ void genera_output(int tipo_output) {
                 }
                 else
                     dati[12] = double_to_string(0.0);
-                dati[13] = int_to_string(0);
+                dati[13] = double_to_string(sqrt(ospedale[i].coda[t].dati[pr].varianza_wel_attesa / ospedale[i].coda[t].dati[pr].index_wel_attesa)); //varianza attesa
                 dati[14] = double_to_string(tempo_attuale);                                         //tempo simulazione
                 if(tipo_output == 0)
                     riempi_csv(fd_code[i][index], dati, NCOLONNECODE);
@@ -624,7 +624,7 @@ void distruttore() {
     __close();
 }
 
-void update_area(double time_next_event) {
+void update_stats(double time_next_event) {
     int diff;
     int index;
     for (int i = 0; i < NOSPEDALI; i++) {
@@ -636,6 +636,7 @@ void update_area(double time_next_event) {
                                                                                           ospedale[i].coda[t].dati[pr].usciti_serviti -
                                                                                           ospedale[i].coda[t].dati[pr].usciti_morti -
                                                                                           ospedale[i].coda[t].dati[pr].usciti_aggravati));
+                // varianza numero pazienti
                 ospedale[i].coda[t].dati[pr].index_wel_numero_pazienti++;
                 index = ospedale[i].coda[t].dati[pr].index_wel_numero_pazienti;
                 diff = (ospedale[i].coda[t].dati[pr].accessi_normali +
@@ -645,6 +646,14 @@ void update_area(double time_next_event) {
                     ospedale[i].coda[t].dati[pr].usciti_morti -
                     ospedale[i].coda[t].dati[pr].usciti_aggravati) - ospedale[i].coda[t].dati[pr].area / tempo_attuale;
                 ospedale[i].coda[t].dati[pr].varianza_wel_numero_pazienti += diff * diff * (index - 1.0) / index;
+
+                // varianza attesa
+                ospedale[i].coda[t].dati[pr].index_wel_attesa++;
+                index = ospedale[i].coda[t].dati[pr].index_wel_attesa;
+                diff = ospedale[i].coda[t].dati[pr].area/ospedale[i].coda[t].tasso_arrivo - ospedale[i].coda[t].dati[pr].area / ((ospedale[i].coda[t].dati[pr].accessi_normali +
+                                                                                                ospedale[i].coda[t].dati[pr].accessi_altre_code +
+                                                                                                ospedale[i].coda[t].dati[pr].accessi_altri_ospedali));
+                ospedale[i].coda[t].dati[pr].varianza_wel_attesa += diff * diff * (index - 1.0) / index;
             }
         }
     }
@@ -683,7 +692,7 @@ void* simulation_start(void* input) {
 #ifdef FLUSSO_COVID_VARIABILE
         aggiorna_flussi_covid(next_event->tempo_ne);
 #endif
-        update_area(next_event->tempo_ne);
+        update_stats(next_event->tempo_ne);
         // gestisci eventi
         if (next_event->evento == ARRIVO) {
             processa_arrivo(next_event);
