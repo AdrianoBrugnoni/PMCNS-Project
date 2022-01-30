@@ -526,17 +526,19 @@ void genera_output(int tipo_output) {
                 dati[8] = int_to_string(ospedale[i].coda[t].dati[pr].permanenza_aggravati);
                 dati[9] = int_to_string(t);
                 dati[10] = double_to_string(ospedale[i].coda[t].dati[pr].area / tempo_attuale);     //pazienti medi
+                dati[11] = double_to_string(ospedale[i].coda[t].dati[pr].varianza_wel_numero_pazienti/ ospedale[i].coda[t].dati[pr].index_wel_numero_pazienti);
                 if(ospedale[i].coda[t].dati[pr].accessi_normali +                                   //attesa media
                    ospedale[i].coda[t].dati[pr].accessi_altre_code + 
                    ospedale[i].coda[t].dati[pr].accessi_altri_ospedali != 0)
                 {
-                    dati[11] = double_to_string(ospedale[i].coda[t].dati[pr].area / (ospedale[i].coda[t].dati[pr].accessi_normali+
+                    dati[12] = double_to_string(ospedale[i].coda[t].dati[pr].area / (ospedale[i].coda[t].dati[pr].accessi_normali+
                                                                                     ospedale[i].coda[t].dati[pr].accessi_altre_code+
                                                                                     ospedale[i].coda[t].dati[pr].accessi_altri_ospedali));
                 }
                 else
-                    dati[11] = double_to_string(0.0);
-                dati[12] = double_to_string(tempo_attuale);                                         //tempo simulazione
+                    dati[12] = double_to_string(0.0);
+                dati[13] = int_to_string(0);
+                dati[14] = double_to_string(tempo_attuale);                                         //tempo simulazione
                 if(tipo_output == 0)
                     riempi_csv(fd_code[i][index], dati, NCOLONNECODE);
                 else
@@ -623,7 +625,8 @@ void distruttore() {
 }
 
 void update_area(double time_next_event) {
-
+    int diff;
+    int index;
     for (int i = 0; i < NOSPEDALI; i++) {
         for (int t = 0; t < NTYPE; t++) {
             for (int pr = 0; pr < ospedale[i].coda[t].livello_pr; pr++) {
@@ -633,6 +636,15 @@ void update_area(double time_next_event) {
                                                                                           ospedale[i].coda[t].dati[pr].usciti_serviti -
                                                                                           ospedale[i].coda[t].dati[pr].usciti_morti -
                                                                                           ospedale[i].coda[t].dati[pr].usciti_aggravati));
+                ospedale[i].coda[t].dati[pr].index_wel_numero_pazienti++;
+                index = ospedale[i].coda[t].dati[pr].index_wel_numero_pazienti;
+                diff = (ospedale[i].coda[t].dati[pr].accessi_normali +
+                    ospedale[i].coda[t].dati[pr].accessi_altre_code +
+                    ospedale[i].coda[t].dati[pr].accessi_altri_ospedali -
+                    ospedale[i].coda[t].dati[pr].usciti_serviti -
+                    ospedale[i].coda[t].dati[pr].usciti_morti -
+                    ospedale[i].coda[t].dati[pr].usciti_aggravati) - ospedale[i].coda[t].dati[pr].area / tempo_attuale;
+                ospedale[i].coda[t].dati[pr].varianza_wel_numero_pazienti += diff * diff * (index - 1.0) / index;
             }
         }
     }
@@ -671,6 +683,7 @@ void* simulation_start(void* input) {
 #ifdef FLUSSO_COVID_VARIABILE
         aggiorna_flussi_covid(next_event->tempo_ne);
 #endif
+        update_area(next_event->tempo_ne);
         // gestisci eventi
         if (next_event->evento == ARRIVO) {
             processa_arrivo(next_event);
@@ -687,7 +700,6 @@ void* simulation_start(void* input) {
         else if (next_event->evento == TRASFERIMENTO) {
             processa_trasferimento(next_event);
         }
-        update_area(next_event->tempo_ne);
         tempo_attuale = next_event->tempo_ne;  // manda avanti il tempo della simulazione
 #ifdef GEN_RT
         genera_output_parziale();

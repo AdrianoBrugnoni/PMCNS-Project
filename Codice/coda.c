@@ -11,6 +11,8 @@ typedef struct {    // dati per un singolo livello di priorità della coda
     unsigned long usciti_aggravati;         // numero pazienti che lasciano la coda poichè aggravati e portati a priorità maggiore
 
     double area;
+    double varianza_wel_numero_pazienti;                    // valore intermedio per calcolo varianza welford
+    long index_wel_numero_pazienti;                       // indice welford
     double permanenza_serviti;              // tempo complessivo passato in coda dai pazienti che vengono serviti
     double permanenza_morti;                // tempo complessivo passato in coda dai pazienti che muoiono
     double permanenza_aggravati;            // tempo complessivo passato in coda dai pazienti che abbandonano la coda per aggravamento
@@ -68,6 +70,8 @@ void inizializza_coda_pr(_coda_pr* coda, int livello_pr, double tasso, int tipo)
         coda->dati[pr].permanenza_aggravati = 0;
 
         coda->dati[pr].area = 0;
+        coda->dati[pr].varianza_wel_numero_pazienti = 0;
+        coda->dati[pr].index_wel_numero_pazienti = 1;
     }
 }
 

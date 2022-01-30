@@ -1,0 +1,1 @@
+Cartella che raccoglie i dati di output.

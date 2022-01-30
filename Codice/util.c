@@ -353,6 +353,14 @@ int estrai_ricoveri_giornata(int giornata) {
 	int ret;
 	if(!estrazione_dati) {
 		csv = fopen("./stat/covid_lazio.csv", "r");
+		if (csv == NULL)
+		{
+			csv = fopen("./../stat/covid_lazio.csv", "r");
+			if (csv == NULL)
+			{
+				exit(0);
+			}
+		}
 		estrazione_dati=1;
 	}
 	else
