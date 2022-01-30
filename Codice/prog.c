@@ -552,6 +552,7 @@ void genera_output(int tipo_output) {
     // salvataggio dati reparti
     dati = (char**)malloc(sizeof(char*) * NCOLONNEREPARTI);
     double dati_temp[NCOLONNEREPARTI] = { 0.0 };
+    int num_letti = 0;
     for (int i = 0; i < NOSPEDALI; i++) {
         for (int t = 0; t < NTYPE; t++) {
             for (int j = 0; j < ospedale[i].num_reparti[t]; j++) {
@@ -560,12 +561,13 @@ void genera_output(int tipo_output) {
                     dati_temp[1] += ((double)ospedale[i].reparto[t][j].letto[k].num_entrati);
                     dati_temp[2] += ((double)ospedale[i].reparto[t][j].letto[k].num_usciti);
                     dati_temp[3] += ((double)ospedale[i].reparto[t][j].letto[k].tempo_occupazione/tempo_attuale);
+                    num_letti++;
                 }
             }
             dati[0] = int_to_string((int)dati_temp[0]);
             dati[1] = int_to_string((int)dati_temp[1]);
             dati[2] = int_to_string((int)dati_temp[2]);
-            dati[3] = double_to_string(dati_temp[3]);
+            dati[3] = double_to_string(dati_temp[3]/num_letti);
             if (tipo_output == 0)
                 riempi_csv(fd_reparti[i][t], dati, NCOLONNEREPARTI);
             else
@@ -574,6 +576,7 @@ void genera_output(int tipo_output) {
                 free(dati[k]);
                 dati_temp[k] = 0;
             }
+            num_letti = 0;
         }
     }
     free(dati);
@@ -606,7 +609,6 @@ void distruttore() {
         strcat(command, int_to_string(i));
         strcat(command, "\\test\n}\n}\n");
 #else
-
         mkdir_p(path);
         strcpy(command, "for f in ./output/");
         strcat(command, int_to_string(i));
@@ -618,7 +620,7 @@ void distruttore() {
         memset(path, 0, strlen(path));
         memset(command, 0, strlen(command));
     }
-    // Chiudi tutti i canali di I/O  
+    // Chiudi tutti i canali di I/O
     __close();
 }
 
