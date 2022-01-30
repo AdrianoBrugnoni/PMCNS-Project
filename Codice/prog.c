@@ -35,8 +35,6 @@
 #define AGGRAVAMENTO 3              // codice operativo dell'evento "aggravamento di un paziente e cambio coda"
 #define TRASFERIMENTO 4             // codice operativo dell'evento "arrivo di un paziente trasferito tra ospedali"
 
-#define NOSPEDALI 2                 // numero di ospedali da simulare
-
 // struttura dati che contiene informazioni sul next event
 typedef struct {
     int evento;                     // ARRIVO - COMPLETAMENTO - TIMEOUT
@@ -127,13 +125,13 @@ void inizializza_variabili() {
     timeout_paziente[COVID] = 30;
     timeout_paziente[NCOVID] = 15;
 
-    servizio_paziente[COVID] = 48;
+    servizio_paziente[COVID] = 0.2; // 5 serviti per tick
     servizio_paziente[NCOVID] = 30;
 
     soglia_utilizzo = 0.5;
 
     #ifdef SIM_INTERATTIVA
-    ultimo_trasferimento.analizzato = 1;
+    ultimo_trasferimento.analizzato = 0;
     #endif
 }
 
@@ -147,10 +145,10 @@ void inizializza_variabili_per_simulazione(int stream) {
     for(int i=0; i<NOSPEDALI; i++) {
 
         if(i==0) {
-            param.tasso_arrivo_coda_covid = 6;
-            param.tasso_arrivo_coda_normale = 5;
-            param.letti_per_reparto = 3;
-            param.num_reparti_covid = 1;
+            param.tasso_arrivo_coda_covid = 0.1; // 10 arrivi per tick
+            param.tasso_arrivo_coda_normale = 0;
+            param.letti_per_reparto = 2;
+            param.num_reparti_covid = 2;
             param.num_min_reparti_covid = 1;
             param.num_reparti_normali = 3;
             param.num_min_reparti_normali = 1;

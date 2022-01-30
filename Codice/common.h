@@ -2,6 +2,8 @@
 #define END 24*90				// termine simulazione al giorno 90
 #define INF 100*END			    // tempo irraggiungibile
 
+#define NOSPEDALI 1             // numero di ospedali nella simulazione
+
 #define COVID 0					// Tipo 1
 #define NCOVID 1				// Tipo 2
 
