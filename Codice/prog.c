@@ -671,6 +671,7 @@ void* simulation_start(void* input) {
 #ifdef FLUSSO_COVID_VARIABILE
         aggiorna_flussi_covid(next_event->tempo_ne);
 #endif
+        update_area(next_event->tempo_ne);
         // gestisci eventi
         if (next_event->evento == ARRIVO) {
             processa_arrivo(next_event);
@@ -687,7 +688,6 @@ void* simulation_start(void* input) {
         else if (next_event->evento == TRASFERIMENTO) {
             processa_trasferimento(next_event);
         }
-        update_area(next_event->tempo_ne);
         tempo_attuale = next_event->tempo_ne;  // manda avanti il tempo della simulazione
 #ifdef GEN_RT
         genera_output_parziale();
