@@ -10,23 +10,25 @@ typedef struct {    // dati per un singolo livello di priorità della coda
     unsigned long usciti_morti;             // numero pazienti che lasciano la coda poichè morti
     unsigned long usciti_aggravati;         // numero pazienti che lasciano la coda poichè aggravati e portati a priorità maggiore
 
-    double area;
-    double varianza_wel_numero_pazienti;    // valore intermedio per calcolo varianza welford
-    int index_wel_numero_pazienti;         // indice welford
-    double varianza_wel_attesa;             // valore intermedio per calcolo varianza welford
-    int index_wel_attesa;                  // indice welford
     double permanenza_serviti;              // tempo complessivo passato in coda dai pazienti che vengono serviti
     double permanenza_morti;                // tempo complessivo passato in coda dai pazienti che muoiono
     double permanenza_aggravati;            // tempo complessivo passato in coda dai pazienti che abbandonano la coda per aggravamento
+
+    double area;
+    double varianza_wel_numero_pazienti;    // valore intermedio per calcolo varianza welford
+    int index_wel_numero_pazienti;          // indice welford pazienti
+    double varianza_wel_attesa;             // valore intermedio per calcolo varianza welford
+    int index_wel_attesa;                   // indice welford attesa
+
 } dati_coda;
 
 typedef struct {
-    int tipo;               // il tipo della coda, covid o non covid
-    double tasso_arrivo;    // tasso di arrivo alla coda
-    double prossimo_arrivo; // il tempo in cui avverrà il prossimo arrivo in coda
-    int livello_pr;         // numero di code con priorità presenti nella coda
-    paziente* testa[MAX_PR];     // array di teste delle code con priorità
-    dati_coda dati[MAX_PR];      // array di dati per ogni coda con priorità
+    int tipo;                   // il tipo della coda, covid o non covid
+    double media_interarrivi;   // valore medio interarrivo code
+    double prossimo_arrivo;     // il tempo in cui avverrà il prossimo arrivo in coda
+    int livello_pr;             // numero di code con priorità presenti nella coda
+    paziente* testa[MAX_PR];    // array di teste delle code con priorità
+    dati_coda dati[MAX_PR];     // array di dati per ogni coda con priorità
 } _coda_pr;
 
 
@@ -35,14 +37,14 @@ double ottieni_prossimo_arrivo_in_coda(double tasso) {
 }
 
 void calcola_prossimo_arrivo_in_coda(_coda_pr* coda, double tempo_attuale) {
-    if(coda->tasso_arrivo == 0)
+    if(coda->media_interarrivi == 0)
         coda->prossimo_arrivo = INF;
     else
-        coda->prossimo_arrivo = tempo_attuale + ottieni_prossimo_arrivo_in_coda(coda->tasso_arrivo);
+        coda->prossimo_arrivo = tempo_attuale + ottieni_prossimo_arrivo_in_coda(coda->media_interarrivi);
 }
 
-double estrai_tasso_giornata(int giorno_attuale) {
-    return estrai_ricoveri_giornata(giorno_attuale) / SAMPLINGRATE;
+double estrai_interarrivo_giornata(int giorno_attuale) {
+    return SAMPLINGRATE / estrai_ricoveri_giornata(giorno_attuale);
 }
 
 void aggiorna_flusso_covid(_coda_pr* coda, int giorno_attuale, double tempo_attuale) {
@@ -51,7 +53,7 @@ void aggiorna_flusso_covid(_coda_pr* coda, int giorno_attuale, double tempo_attu
         return;
     
     // ottieni il nuovo tasso di arrivo in funzione dei dati
-    coda->tasso_arrivo = estrai_tasso_giornata(giorno_attuale);
+    coda->media_interarrivi = estrai_interarrivo_giornata(giorno_attuale);
 
     // se il prossimo arrivo non era definito, allora significa che
     // il precedente tasso di arrivo era pari a 0. Adesso si prova 
@@ -60,11 +62,11 @@ void aggiorna_flusso_covid(_coda_pr* coda, int giorno_attuale, double tempo_attu
         calcola_prossimo_arrivo_in_coda(coda, tempo_attuale);
 }
 
-void inizializza_coda_pr(_coda_pr* coda, int livello_pr, double tasso, int tipo) {
+void inizializza_coda_pr(_coda_pr* coda, int livello_pr, double media_interarrivi, int tipo) {
 
     coda->tipo = tipo;
-    coda->tasso_arrivo = tasso;
-    coda->prossimo_arrivo = START + ottieni_prossimo_arrivo_in_coda(coda->tasso_arrivo);
+    coda->media_interarrivi = media_interarrivi;
+    coda->prossimo_arrivo = START + ottieni_prossimo_arrivo_in_coda(coda->media_interarrivi);
     coda->livello_pr = livello_pr;
 
     for(int pr=0; pr<coda->livello_pr; pr++) {

@@ -22,8 +22,8 @@ typedef struct {
 
 typedef struct {
 
-    double tasso_arrivo_coda_covid;
-    double tasso_arrivo_coda_normale;
+    double media_interarrivo_coda_covid;
+    double media_interarrivo_coda_normale;
     int letti_per_reparto;
     int num_reparti_covid;
     int num_min_reparti_covid;
@@ -72,11 +72,11 @@ void inizializza_ospedale(_ospedale* o, _parametri_ospedale* param) {
     // inizializza code con priorità
 
     #ifdef FLUSSO_COVID_VARIABILE
-    param->tasso_arrivo_coda_covid = estrai_tasso_giornata(0);
+    param->media_interarrivo_coda_covid = estrai_interarrivo_giornata(0);
     #endif
 
-    inizializza_coda_pr(&o->coda[COVID], NCODECOVID, param->tasso_arrivo_coda_covid, COVID);
-    inizializza_coda_pr(&o->coda[NCOVID], NCODENCOVID, param->tasso_arrivo_coda_normale, NCOVID);
+    inizializza_coda_pr(&o->coda[COVID], NCODECOVID, param->media_interarrivo_coda_covid, COVID);
+    inizializza_coda_pr(&o->coda[NCOVID], NCODENCOVID, param->media_interarrivo_coda_normale, NCOVID);
 }
 
 int prova_transizione_reparto(_ospedale* o, int id_reparto, int tipo, double tempo_attuale) {

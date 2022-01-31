@@ -1,5 +1,5 @@
-#define PERC_GIOVANI 5          // percentuale pazienti giovani che accedono alla terapia intensiva covid
-#define PERC_MEZZA_ETA 15       // percentuale pazienti di mezza età che accedono alla terapia intensiva covid
+#define PERC_GIOVANI 20         // percentuale pazienti giovani che accedono alla terapia intensiva covid
+#define PERC_MEZZA_ETA 30       // percentuale pazienti di mezza età che accedono alla terapia intensiva covid
 
 #define SOGLIA_GRAVITA 3        // valore soglia di timeout secondo il quale il paziente deve accedere
                                 // urgentemente alla terapia intensiva
@@ -79,4 +79,21 @@ paziente* genera_paziente(double tempo_attuale, int tipo) {
     next_id++;
 
     return p;
+}
+
+paziente* copia_paziente(paziente* p) {
+
+    // genera paziente
+    paziente* copia_p = malloc(sizeof(paziente));
+
+    // inizializza il paziente con gli stessi dati del paziente da copiare
+    copia_p->id = p->id;
+    copia_p->classe_eta = p->classe_eta;
+    copia_p->gravita = p->gravita;
+    copia_p->timeout = p->timeout;
+    copia_p->ingresso = p->ingresso;
+    copia_p->aggravamento = p->aggravamento;
+    copia_p->next = p->next;
+
+    return copia_p;
 }

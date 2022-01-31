@@ -64,7 +64,7 @@ void stampa_stato_code(_ospedale* ospedale, int num_ospedali) {
 
         for(int tipo=0; tipo<NTYPE; tipo++) {
 
-            printf("\tCoda %s (media inter: %.4f) - Prossimo arrivo: %.4f\n", nome_da_tipo(tipo), ospedale[i].coda[tipo].tasso_arrivo, ospedale[i].coda[tipo].prossimo_arrivo);
+            printf("\tCoda %s (media inter: %.4f) - Prossimo arrivo: %.4f\n", nome_da_tipo(tipo), ospedale[i].coda[tipo].media_interarrivi, ospedale[i].coda[tipo].prossimo_arrivo);
 
 
             for(int pr=0; pr<ospedale[i].coda[tipo].livello_pr; pr++) { // per livello di priorità di una coda (COVID o NCOVID)
@@ -173,8 +173,8 @@ void stampa_simulazione_attuale(_ospedale* ospedale, int num_ospedali, double te
 
         for(int tipo=0; tipo<NTYPE; tipo++) {
             
-            if(ospedale[i].coda[tipo].tasso_arrivo != INF)
-                printf("\tCoda %s (media inter: %.4f) - Prossimo arrivo: %.4f\n", nome_da_tipo(tipo), ospedale[i].coda[tipo].tasso_arrivo, ospedale[i].coda[tipo].prossimo_arrivo);
+            if(ospedale[i].coda[tipo].media_interarrivi != INF)
+                printf("\tCoda %s (media inter: %.4f) - Prossimo arrivo: %.4f\n", nome_da_tipo(tipo), ospedale[i].coda[tipo].media_interarrivi, ospedale[i].coda[tipo].prossimo_arrivo);
             else
                 printf("\tCoda %s (media inter: 0) - Prossimo arrivo: %f\n", nome_da_tipo(tipo), ospedale[i].coda[tipo].prossimo_arrivo);
             

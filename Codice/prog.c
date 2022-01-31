@@ -151,8 +151,8 @@ void inizializza_variabili_per_simulazione(int stream) {
     for(int i=0; i<NOSPEDALI; i++) {
 
         if(i==0) {
-            param.tasso_arrivo_coda_covid = 0.1; // 10 arrivi per tick
-            param.tasso_arrivo_coda_normale = 1.2;
+            param.media_interarrivo_coda_covid = 0.1; // 10 arrivi per tick
+            param.media_interarrivo_coda_normale = 1.2;
             param.letti_per_reparto = 2;
             param.num_reparti_covid = 2;
             param.num_min_reparti_covid = 1;
@@ -161,8 +161,8 @@ void inizializza_variabili_per_simulazione(int stream) {
             param.soglia_aumento = 80;
             param.soglia_riduzione = 50;
         } else {
-            param.tasso_arrivo_coda_covid = 6;
-            param.tasso_arrivo_coda_normale = 5;
+            param.media_interarrivo_coda_covid = 6;
+            param.media_interarrivo_coda_normale = 5;
             param.letti_per_reparto = 3;
             param.num_reparti_covid = 1;
             param.num_min_reparti_covid = 1;
@@ -275,7 +275,7 @@ void ottieni_next_event(descrittore_next_event* ne) {
             ne->evento = TRASFERIMENTO;
             ne->id_ospedale_partenza = t->ospedale_partenza;
             ne->id_ospedale_destinazione = t->ospedale_destinazione;
-            ne->paziente_trasferito = t->p;
+            ne->paziente_trasferito = copia_paziente(t->p);
         }
         t = t->next;
     }
@@ -410,6 +410,7 @@ void processa_trasferimento(descrittore_next_event* ne) {
     _ospedale* ospedale_di_destinazione = &ospedale[ne->id_ospedale_destinazione];
     _coda_pr* coda_di_destinazione = &ospedale[ne->id_ospedale_destinazione].coda[COVID];
     paziente* paziente_trasferito = ne->paziente_trasferito;
+    unsigned long id_paziente_trasferito = ne->paziente_trasferito->id;
     double tempo_di_arrivo = ne->tempo_ne;
 
     // il paziente trasferito è appena acceduto all'ospedale di destinazione
@@ -427,7 +428,7 @@ void processa_trasferimento(descrittore_next_event* ne) {
     }
 
     // rimuovo il paziente dalla lista dei pazienti che devono essere trasferiti
-    rimuovi_da_pazienti_in_trasferimento(&testa_trasferiti, paziente_trasferito->id);
+    rimuovi_da_pazienti_in_trasferimento(&testa_trasferiti, id_paziente_trasferito);
 }
 
 void processa_aggiorna_flussi_covid(descrittore_next_event* ne) {
@@ -671,7 +672,7 @@ void update_stats(double time_next_event) {
                 // varianza attesa
                 ospedale[i].coda[t].dati[pr].index_wel_attesa++;
                 index = ospedale[i].coda[t].dati[pr].index_wel_attesa;
-                diff = ospedale[i].coda[t].dati[pr].area/ospedale[i].coda[t].tasso_arrivo - ospedale[i].coda[t].dati[pr].area / ((ospedale[i].coda[t].dati[pr].accessi_normali +
+                diff = ospedale[i].coda[t].dati[pr].area*ospedale[i].coda[t].media_interarrivi - ospedale[i].coda[t].dati[pr].area / ((ospedale[i].coda[t].dati[pr].accessi_normali +
                                                                                                 ospedale[i].coda[t].dati[pr].accessi_altre_code +
                                                                                                 ospedale[i].coda[t].dati[pr].accessi_altri_ospedali));
                 ospedale[i].coda[t].dati[pr].varianza_wel_attesa += diff * diff * (index - 1.0) / index;
