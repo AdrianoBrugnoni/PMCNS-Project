@@ -105,8 +105,15 @@ double somma_utilizzazione_letti_reparto(_reparto* r, double tempo_attuale) {
 
     double utilizzazione_letti = 0;
 
-    for(int i=0; i<r->num_letti; i++) // per ogni letto del reparto
+    for(int i=0; i<r->num_letti; i++) { // per ogni letto del reparto
+       
+        // un reparto può essere dimesso nello stesso istante di tempo in cui viene creato
+        // in quel caso non si deve portare niente all'interno dello storico
+        if(tempo_attuale - r->letto[i].tempo_nascita == 0)
+            return -1;
+        
         utilizzazione_letti += r->letto[i].tempo_occupazione / (tempo_attuale - r->letto[i].tempo_nascita);
+    }
 
     return utilizzazione_letti;
 }
@@ -115,9 +122,12 @@ void aggiungi_statistiche_reparto_in_storico(_reparto* r, _storico_reparti* s, d
 
     s->pazienti_entrati += pazienti_entrati_reparto(r);
     s->pazienti_usciti += pazienti_usciti_reparto(r);
-    s->somma_utilizzazione_letti += somma_utilizzazione_letti_reparto(r, tempo_attuale);
-    s->numero_letti_dismessi += r->num_letti;
-
     s->tempo_vita_letti += tempo_vita_letti_reparto(r, tempo_attuale);
     s->tempo_occupazione_letti += tempo_occupazione_letti_reparto(r);
+
+    double somma_utilizzazione = somma_utilizzazione_letti_reparto(r, tempo_attuale);
+    if(somma_utilizzazione != -1) {
+        s->somma_utilizzazione_letti += somma_utilizzazione;
+        s->numero_letti_dismessi += r->num_letti;
+    }
 }

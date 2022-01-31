@@ -126,8 +126,8 @@ void inizializza_variabili() {
     timeout_paziente[COVID] = 30;
     timeout_paziente[NCOVID] = 15;
 
-    servizio_paziente[COVID] = 0.2; // 5 serviti per tick
-    servizio_paziente[NCOVID] = 30;
+    servizio_paziente[COVID] = 0.33333333; // 3 serviti per tick
+    servizio_paziente[NCOVID] = 0.33333333; // 3 serviti per tick
 
     soglia_utilizzo = 0.5;
 
@@ -147,7 +147,7 @@ void inizializza_variabili_per_simulazione(int stream) {
 
         if(i==0) {
             param.media_interarrivo_coda_covid = 0.1; // 10 arrivi per tick
-            param.media_interarrivo_coda_normale = 1.2;
+            param.media_interarrivo_coda_normale = 0.1; // 10 arrivi per tick
             param.letti_per_reparto = 2;
             param.num_reparti_covid = 2;
             param.num_min_reparti_covid = 1;
@@ -569,9 +569,14 @@ void genera_output(int tipo_output) {
                     dati_temp[0] += ((double)ospedale[i].reparto[t][j].letto[k].tempo_occupazione); // tempo di occupazione del letto
                     dati_temp[1] += ((double)ospedale[i].reparto[t][j].letto[k].num_entrati); // numero entrati nel letto
                     dati_temp[2] += ((double)ospedale[i].reparto[t][j].letto[k].num_usciti); // numero usciti dal letto
-                    dati_temp[3] += ((double)ospedale[i].reparto[t][j].letto[k].tempo_occupazione/
+                    
+                    // l'ultimo evento della simulazione potrebbe aver comportato uno switch di reparti
+                    // in questo caso ci saranno dei letti con tempo di vita pari a 0 e ne va tenuto conto
+                    if(tempo_attuale - ospedale[i].reparto[t][j].letto[k].tempo_nascita != 0) {
+                        dati_temp[3] += ((double)ospedale[i].reparto[t][j].letto[k].tempo_occupazione/
                                             (tempo_attuale-ospedale[i].reparto[t][j].letto[k].tempo_nascita)); // percentuale di tempo per cui il letto è stato occupato
-                    num_letti++;
+                        num_letti++;
+                    }
                 }
             }
 
