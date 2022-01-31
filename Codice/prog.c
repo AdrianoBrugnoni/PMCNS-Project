@@ -270,7 +270,7 @@ void ottieni_next_event(descrittore_next_event* ne) {
             ne->evento = TRASFERIMENTO;
             ne->id_ospedale_partenza = t->ospedale_partenza;
             ne->id_ospedale_destinazione = t->ospedale_destinazione;
-            ne->paziente_trasferito = t->p;
+            ne->paziente_trasferito = copia_paziente(t->p);
         }
         t = t->next;
     }
@@ -405,6 +405,7 @@ void processa_trasferimento(descrittore_next_event* ne) {
     _ospedale* ospedale_di_destinazione = &ospedale[ne->id_ospedale_destinazione];
     _coda_pr* coda_di_destinazione = &ospedale[ne->id_ospedale_destinazione].coda[COVID];
     paziente* paziente_trasferito = ne->paziente_trasferito;
+    unsigned long id_paziente_trasferito = ne->paziente_trasferito->id;
     double tempo_di_arrivo = ne->tempo_ne;
 
     // il paziente trasferito è appena acceduto all'ospedale di destinazione
@@ -422,7 +423,7 @@ void processa_trasferimento(descrittore_next_event* ne) {
     }
 
     // rimuovo il paziente dalla lista dei pazienti che devono essere trasferiti
-    rimuovi_da_pazienti_in_trasferimento(&testa_trasferiti, paziente_trasferito->id);
+    rimuovi_da_pazienti_in_trasferimento(&testa_trasferiti, id_paziente_trasferito);
 }
 
 void processa_aggiorna_flussi_covid(descrittore_next_event* ne) {
