@@ -1,8 +1,11 @@
 typedef struct {
     unsigned long pazienti_entrati;
     unsigned long pazienti_usciti;
-    double tempo_vita_letti;
-    double tempo_occupazione_letti;
+    double somma_utilizzazione_letti;   // è la sommatoria di "tempo occupazione letto" / "tempo di vita letto"
+                                        // per ogni letto che è andato nello storico
+    double numero_letti_dismessi;       // numero totali di letti che sono stati portati nello storico
+    double tempo_occupazione_letti;     // tempo totale per cui i letti sono stati occupati
+    double tempo_vita_letti;            // tempo totale per cui i letti hanno vissuto
 } _storico_reparti;
 
 typedef struct {
@@ -98,10 +101,23 @@ double tempo_occupazione_letti_reparto(_reparto* r) {
 
 }
 
+double somma_utilizzazione_letti_reparto(_reparto* r, double tempo_attuale) {
+
+    double utilizzazione_letti = 0;
+
+    for(int i=0; i<r->num_letti; i++) // per ogni letto del reparto
+        utilizzazione_letti += r->letto[i].tempo_occupazione / (tempo_attuale - r->letto[i].tempo_nascita);
+
+    return utilizzazione_letti;
+}
+
 void aggiungi_statistiche_reparto_in_storico(_reparto* r, _storico_reparti* s, double tempo_attuale) {
 
     s->pazienti_entrati += pazienti_entrati_reparto(r);
     s->pazienti_usciti += pazienti_usciti_reparto(r);
+    s->somma_utilizzazione_letti += somma_utilizzazione_letti_reparto(r, tempo_attuale);
+    s->numero_letti_dismessi += r->num_letti;
+
     s->tempo_vita_letti += tempo_vita_letti_reparto(r, tempo_attuale);
     s->tempo_occupazione_letti += tempo_occupazione_letti_reparto(r);
 }

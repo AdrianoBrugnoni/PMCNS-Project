@@ -9,3 +9,4 @@ prog
 stat
 teststat
 *.obj
+stat/covid_lazio.csv

@@ -20,6 +20,8 @@ char* nome_evento(int codice_evento) {
         return "AGGRAVAMENTO";
     else if(codice_evento == TRASFERIMENTO)
         return "TRASFERIMENTO";
+    else if(codice_evento == AGGIORNAMENTO)
+        return "AGGIORNAMENTO FLUSSO";
     else
         return "";
 }
@@ -62,7 +64,7 @@ void stampa_stato_code(_ospedale* ospedale, int num_ospedali) {
 
         for(int tipo=0; tipo<NTYPE; tipo++) {
 
-            printf("\tCoda %s (media inter: %.0f) - Prossimo arrivo: %f\n", nome_da_tipo(tipo), ospedale[i].coda[tipo].tasso_arrivo, ospedale[i].coda[tipo].prossimo_arrivo);
+            printf("\tCoda %s (media inter: %.4f) - Prossimo arrivo: %.4f\n", nome_da_tipo(tipo), ospedale[i].coda[tipo].tasso_arrivo, ospedale[i].coda[tipo].prossimo_arrivo);
 
 
             for(int pr=0; pr<ospedale[i].coda[tipo].livello_pr; pr++) { // per livello di priorità di una coda (COVID o NCOVID)
@@ -172,7 +174,7 @@ void stampa_simulazione_attuale(_ospedale* ospedale, int num_ospedali, double te
         for(int tipo=0; tipo<NTYPE; tipo++) {
             
             if(ospedale[i].coda[tipo].tasso_arrivo != INF)
-                printf("\tCoda %s (media inter: %.0f) - Prossimo arrivo: %f\n", nome_da_tipo(tipo), ospedale[i].coda[tipo].tasso_arrivo, ospedale[i].coda[tipo].prossimo_arrivo);
+                printf("\tCoda %s (media inter: %.4f) - Prossimo arrivo: %.4f\n", nome_da_tipo(tipo), ospedale[i].coda[tipo].tasso_arrivo, ospedale[i].coda[tipo].prossimo_arrivo);
             else
                 printf("\tCoda %s (media inter: 0) - Prossimo arrivo: %f\n", nome_da_tipo(tipo), ospedale[i].coda[tipo].prossimo_arrivo);
             
@@ -203,6 +205,8 @@ void stampa_simulazione_attuale(_ospedale* ospedale, int num_ospedali, double te
         printf("ospedale %d, coda %s (id:%lu)\n", next_event->id_ospedale, nome_coda(next_event->tipo, next_event->id_priorita), next_event->id_paziente);
     } else if(next_event->evento == TRASFERIMENTO) {
         printf("ospedale %d->%d (paziente %lu)\n", next_event->id_ospedale_partenza, next_event->id_ospedale_destinazione, next_event->paziente_trasferito->id);
+    } else if(next_event->evento == AGGIORNAMENTO) {
+        printf("calcolo nuovo flusso covid\n");
     }
     printf("\t\t\ttempo attuale:    %f\n", tempo_attuale);
     printf("\t\t\ttempo next event: %f\n", next_event->tempo_ne);

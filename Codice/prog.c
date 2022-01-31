@@ -34,6 +34,7 @@
 #define TIMEOUT 2                   // codice operativo dell'evento "morte di un paziente in coda"
 #define AGGRAVAMENTO 3              // codice operativo dell'evento "aggravamento di un paziente e cambio coda"
 #define TRASFERIMENTO 4             // codice operativo dell'evento "arrivo di un paziente trasferito tra ospedali"
+#define AGGIORNAMENTO 5             // codice operativo dell'evento "aggiornamento del flusso covid"
 
 // struttura dati che contiene informazioni sul next event
 typedef struct {
@@ -146,7 +147,7 @@ void inizializza_variabili_per_simulazione(int stream) {
 
         if(i==0) {
             param.tasso_arrivo_coda_covid = 0.1; // 10 arrivi per tick
-            param.tasso_arrivo_coda_normale = 0;
+            param.tasso_arrivo_coda_normale = 1.2;
             param.letti_per_reparto = 2;
             param.num_reparti_covid = 2;
             param.num_min_reparti_covid = 1;
@@ -190,7 +191,7 @@ void ottieni_next_event(descrittore_next_event* ne) {
     for (int i = 0; i < NOSPEDALI; i++) {
         for (int t = 0; t < NTYPE; t++) {
             // se il tasso è nullo non avrò alcun arrivo. Controllo da fare per evitare che il next-event sia sempre un arrivo.
-            if (ospedale[i].coda[t].tasso_arrivo != 0 && ne->tempo_ne > ospedale[i].coda[t].prossimo_arrivo) { 
+            if (ne->tempo_ne > ospedale[i].coda[t].prossimo_arrivo) { 
                 ne->tempo_ne = ospedale[i].coda[t].prossimo_arrivo;
                 ne->tipo = t;
                 ne->id_ospedale = i;
@@ -272,6 +273,13 @@ void ottieni_next_event(descrittore_next_event* ne) {
             ne->paziente_trasferito = t->p;
         }
         t = t->next;
+    }
+    #endif
+
+    #ifdef FLUSSO_COVID_VARIABILE
+    if(ne->tempo_ne > prossimo_giorno) {
+        ne->tempo_ne = prossimo_giorno;
+        ne->evento = AGGIORNAMENTO;
     }
     #endif
 }
@@ -417,15 +425,13 @@ void processa_trasferimento(descrittore_next_event* ne) {
     rimuovi_da_pazienti_in_trasferimento(&testa_trasferiti, paziente_trasferito->id);
 }
 
-void aggiorna_flussi_covid(double tempo_attuale) {
+void processa_aggiorna_flussi_covid(descrittore_next_event* ne) {
 
-    if(tempo_attuale >= prossimo_giorno) {
-        prossimo_giorno += tick_per_giorno;
+    prossimo_giorno += tick_per_giorno; // definisci l'istante in cui verrà ri-scaturito l'evento
 
-        // per ogni coda COVID e NCOVID di ogni ospedale invoca:
-        for(int i=0; i<NOSPEDALI; i++)
-            aggiorna_flusso_covid(&ospedale[i].coda[COVID], (prossimo_giorno/tick_per_giorno)-1);
-    }
+    // per ogni coda COVID e NCOVID di ogni ospedale invoca:
+    for(int i=0; i<NOSPEDALI; i++)
+        aggiorna_flusso_covid(&ospedale[i].coda[COVID], (prossimo_giorno/tick_per_giorno)-1, ne->tempo_ne);
 }
 
 // inizializzazione dei csv che memorizzano i dati real-time(RT) inerenti le code
@@ -555,19 +561,29 @@ void genera_output(int tipo_output) {
     int num_letti = 0;
     for (int i = 0; i < NOSPEDALI; i++) {
         for (int t = 0; t < NTYPE; t++) {
+
+            // leggo i dati relativi ai letti presenti in questo istante della simulazione
             for (int j = 0; j < ospedale[i].num_reparti[t]; j++) {
                 for (int k = 0; k < ospedale[i].reparto[t][j].num_letti; k++) {
-                    dati_temp[0] += ((double)ospedale[i].reparto[t][j].letto[k].tempo_occupazione);
-                    dati_temp[1] += ((double)ospedale[i].reparto[t][j].letto[k].num_entrati);
-                    dati_temp[2] += ((double)ospedale[i].reparto[t][j].letto[k].num_usciti);
-                    dati_temp[3] += ((double)ospedale[i].reparto[t][j].letto[k].tempo_occupazione/tempo_attuale);
+                    dati_temp[0] += ((double)ospedale[i].reparto[t][j].letto[k].tempo_occupazione); // tempo di occupazione del letto
+                    dati_temp[1] += ((double)ospedale[i].reparto[t][j].letto[k].num_entrati); // numero entrati nel letto
+                    dati_temp[2] += ((double)ospedale[i].reparto[t][j].letto[k].num_usciti); // numero usciti dal letto
+                    dati_temp[3] += ((double)ospedale[i].reparto[t][j].letto[k].tempo_occupazione/
+                                            (tempo_attuale-ospedale[i].reparto[t][j].letto[k].tempo_nascita)); // percentuale di tempo per cui il letto è stato occupato
                     num_letti++;
                 }
             }
+
+            // leggo i dati relativi ai letti portati nello storico ad opera della transizione di un reparto
+            dati_temp[0] += ospedale[i].storico[t].tempo_occupazione_letti;
+            dati_temp[1] += ospedale[i].storico[t].pazienti_entrati;
+            dati_temp[2] += ospedale[i].storico[t].pazienti_usciti;
+            dati_temp[3] += ospedale[i].storico[t].somma_utilizzazione_letti;
+
             dati[0] = int_to_string((int)dati_temp[0]);
             dati[1] = int_to_string((int)dati_temp[1]);
             dati[2] = int_to_string((int)dati_temp[2]);
-            dati[3] = double_to_string(dati_temp[3]/num_letti);
+            dati[3] = double_to_string(dati_temp[3] / (num_letti + ospedale[i].storico[t].numero_letti_dismessi));
             if (tipo_output == 0)
                 riempi_csv(fd_reparti[i][t], dati, NCOLONNEREPARTI);
             else
@@ -687,11 +703,6 @@ void* simulation_start(void* input) {
         else
             step_simulazione(ospedale, NOSPEDALI, tempo_attuale, next_event, testa_trasferiti, 1);
 #endif
-        // se abilitato, cerca di aggiornare il flusso di entrata
-        // nelle code covid in funzione del giorno attuale
-#ifdef FLUSSO_COVID_VARIABILE
-        aggiorna_flussi_covid(next_event->tempo_ne);
-#endif
         update_stats(next_event->tempo_ne);
         // gestisci eventi
         if (next_event->evento == ARRIVO) {
@@ -708,6 +719,9 @@ void* simulation_start(void* input) {
         }
         else if (next_event->evento == TRASFERIMENTO) {
             processa_trasferimento(next_event);
+        }
+        else if (next_event->evento == AGGIORNAMENTO) {
+            processa_aggiorna_flussi_covid(next_event);
         }
         tempo_attuale = next_event->tempo_ne;  // manda avanti il tempo della simulazione
 #ifdef GEN_RT
