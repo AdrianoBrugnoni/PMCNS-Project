@@ -1,5 +1,5 @@
 #define START 0					// inizio all'ora 0
-#define END 24*90				// termine simulazione al giorno 90
+#define END 24*90				// termine simulazione al giorno x (massimo 589 per il csv in utilizzo)
 #define INF 100*END			    // tempo irraggiungibile
 
 #define NOSPEDALI 1             // numero di ospedali nella simulazione
