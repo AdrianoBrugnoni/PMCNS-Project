@@ -1,5 +1,6 @@
 #define PERC_GIOVANI 20         // percentuale pazienti giovani che accedono alla terapia intensiva covid
-#define PERC_MEZZA_ETA 30       // percentuale pazienti di mezza età che accedono alla terapia intensiva covid
+#define PERC_ADULTI 30          // percentuale pazienti adulti che accedono alla terapia intensiva covid
+#define PERC_ANZIANI 50         // percentuale pazienti anziani che accedono alla terapia intensiva covid (valore non usato)
 
 #define SOGLIA_GRAVITA 3        // valore soglia di timeout secondo il quale il paziente deve accedere
                                 // urgentemente alla terapia intensiva
@@ -44,7 +45,7 @@ int ottieni_classe_eta_paziente() {
     
     if(var < PERC_GIOVANI)
         return GIOVANE;
-    else if(var < PERC_GIOVANI + PERC_MEZZA_ETA)
+    else if(var < PERC_GIOVANI + PERC_ADULTI)
         return MEZZA_ETA;
     else
         return ANZIANO;
