@@ -24,6 +24,8 @@ normale:
 	$(CC) prog.c $(CCFLAGS) $(CFLAGS) $(flag_fissi) $(flag_normali) -DSIM_INTERATTIVA
 normale_n:
 	$(CC) prog.c $(CCFLAGS) $(CFLAGS) $(flag_fissi) $(flag_normali)
+global_only:
+	$(CC) prog.c $(CCFLAGS) $(CFLAGS) $(flag_normali)
 migliorativo:
 	$(CC) prog.c $(CCFLAGS) $(CFLAGS) $(flag_fissi) $(flag_normali) -DCOOPERAZIONE_OSPEDALI -DSIM_INTERATTIVA
 migliorativo_n:

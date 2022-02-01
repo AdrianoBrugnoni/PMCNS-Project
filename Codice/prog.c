@@ -621,6 +621,29 @@ void genera_output_globale() {
 void distruttore() {
     char command[500];
     char path[50];
+
+    // Chiudi tutti i canali di I/O
+    __close();
+#ifndef BATCH
+    //code
+    int index;
+    for (int i = 0; i < NOSPEDALI; i++) {
+        index = 0;
+        for (int t = 0; t < NTYPE; t++) {
+            for (int pr = 0; pr < ospedale[i].coda[t].livello_pr; pr++) {
+                close(fd_code_global[i][index]);
+                index++;
+            }
+        }
+    }
+    //reparti
+    for (int i = 0; i < NOSPEDALI; i++) {
+        for (int t = 0; t < NTYPE; t++) {
+            close(fd_reparti_global[i][t]);
+        }
+    }
+#endif
+
     //pulisco output directory
     for (int i = 0; i < nsimulation; i++) {
         strcpy(path, "./output/");
@@ -642,8 +665,6 @@ void distruttore() {
         memset(path, 0, strlen(path));
         memset(command, 0, strlen(command));
     }
-    // Chiudi tutti i canali di I/O
-    __close();
 }
 
 void update_stats(double time_next_event) {
