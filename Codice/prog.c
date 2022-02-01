@@ -58,9 +58,14 @@ typedef struct {
 #endif
 
 // variabili globali
-double tempo_trasferimento[NOSPEDALI][NOSPEDALI]; 
+double tempo_trasferimento[NOSPEDALI][NOSPEDALI];
 double soglia_utilizzo;
 int nsimulation;
+#ifdef BATCH
+unsigned int tick_globale = 0;          // conteggio di tutti i tick per le batch means
+unsigned int b = 0;                     // coppia (b, k)
+unsigned int k = 0;
+#endif
 
 // variabili globali per thread
 #ifdef MAC_OS
@@ -179,7 +184,7 @@ void inizializza_variabili_per_simulazione(int stream) {
 
 double ottieni_tempo_trasferimento(int from, int to) {
     return tempo_trasferimento[from][to];
-    // oppure, genera un valore casuale da una distribuzione che ha 
+    // oppure, genera un valore casuale da una distribuzione che ha
     // come media proprio il valore tempo_trasferimento[from][to]
 }
 
@@ -191,7 +196,7 @@ void ottieni_next_event(descrittore_next_event* ne) {
     for (int i = 0; i < NOSPEDALI; i++) {
         for (int t = 0; t < NTYPE; t++) {
             // se il tasso è nullo non avrò alcun arrivo. Controllo da fare per evitare che il next-event sia sempre un arrivo.
-            if (ne->tempo_ne > ospedale[i].coda[t].prossimo_arrivo) { 
+            if (ne->tempo_ne > ospedale[i].coda[t].prossimo_arrivo) {
                 ne->tempo_ne = ospedale[i].coda[t].prossimo_arrivo;
                 ne->tipo = t;
                 ne->id_ospedale = i;
@@ -292,9 +297,9 @@ void processa_arrivo(descrittore_next_event* ne) {
     int tipo_di_arrivo = ne->tipo; // COVID o NCOVID
 
     // crea un paziente
-    paziente* p = genera_paziente(tempo_di_arrivo, tipo_di_arrivo); 
+    paziente* p = genera_paziente(tempo_di_arrivo, tipo_di_arrivo);
 
-    // se definito, si decide se il paziente deve essere trasferito nella coda di un 
+    // se definito, si decide se il paziente deve essere trasferito nella coda di un
     // altro ospedale oppure se può essere inserito nella coda dell'ospedale attuale
     #ifdef COOPERAZIONE_OSPEDALI
     if(tipo_di_arrivo == COVID && NOSPEDALI > 1) {
@@ -325,7 +330,7 @@ void processa_arrivo(descrittore_next_event* ne) {
             }
         }
 
-        // se è stato trovato almeno un ospedale che è più libero di 
+        // se è stato trovato almeno un ospedale che è più libero di
         // una certa quantità allora si effettua il trasferimento
         if(utilizzo_attuale - soglia_utilizzo > utilizzo_min) {
 
@@ -339,9 +344,9 @@ void processa_arrivo(descrittore_next_event* ne) {
 
             aggiungi_trasferimento(&testa_trasferiti, trasferimento);
             calcola_prossimo_arrivo_in_coda(coda_di_arrivo, tempo_di_arrivo); // genera il tempo del prossimo arrivo nella coda
-                    
+
             #ifdef SIM_INTERATTIVA
-            // scrivo i dati relativi all'ultimo trasferimento della simulazione in modo 
+            // scrivo i dati relativi all'ultimo trasferimento della simulazione in modo
             // tale da porteli mostrare sulla console nell'analisi dell'evento successivo
             ultimo_trasferimento.ospedale_partenza = trasferimento->ospedale_partenza;
             ultimo_trasferimento.ospedale_destinazione = trasferimento->ospedale_destinazione;
@@ -351,9 +356,9 @@ void processa_arrivo(descrittore_next_event* ne) {
             #endif
 
             // esci
-            return; 
+            return;
         }
-    } 
+    }
     #endif
 
     aggiungi_paziente(coda_di_arrivo, p, DIRETTO); // si aggiunge un paziente in coda
@@ -411,13 +416,13 @@ void processa_trasferimento(descrittore_next_event* ne) {
     // il paziente trasferito è appena acceduto all'ospedale di destinazione
     // controllo se il paziente è ancora vivo
     if(paziente_trasferito->timeout > tempo_di_arrivo) {
-        
-        // porta il paziente dentro la coda dell'ospedale di arrivo e 
+
+        // porta il paziente dentro la coda dell'ospedale di arrivo e
         // prova a muovere un paziente dalla coda ad un letto
         aggiungi_paziente(coda_di_destinazione, paziente_trasferito, TRASFERITO);
         prova_muovi_paziente_in_letto(ospedale_di_destinazione, tempo_di_arrivo, COVID, 0);
     } else {
-        
+
         // il paziente non è sopravvissuto al viaggio
         segnala_morte_in_trasferimento(coda_di_destinazione, paziente_trasferito->classe_eta);
     }
@@ -533,7 +538,7 @@ void genera_output(int tipo_output) {
                 dati[10] = double_to_string(ospedale[i].coda[t].dati[pr].area / tempo_attuale);     //pazienti medi
                 dati[11] = double_to_string(sqrt(ospedale[i].coda[t].dati[pr].varianza_wel_numero_pazienti/ ospedale[i].coda[t].dati[pr].index_wel_numero_pazienti));  //varianza num pazienti
                 if(ospedale[i].coda[t].dati[pr].accessi_normali +                                   //attesa media
-                   ospedale[i].coda[t].dati[pr].accessi_altre_code + 
+                   ospedale[i].coda[t].dati[pr].accessi_altre_code +
                    ospedale[i].coda[t].dati[pr].accessi_altri_ospedali != 0)
                 {
                     dati[12] = double_to_string(ospedale[i].coda[t].dati[pr].area / (ospedale[i].coda[t].dati[pr].accessi_normali+
@@ -668,18 +673,34 @@ void update_stats(double time_next_event) {
                     ospedale[i].coda[t].dati[pr].usciti_morti -
                     ospedale[i].coda[t].dati[pr].usciti_aggravati) - ospedale[i].coda[t].dati[pr].area / tempo_attuale;
                 ospedale[i].coda[t].dati[pr].varianza_wel_numero_pazienti += diff * diff * (index - 1.0) / index;
-
-                // varianza attesa
-                ospedale[i].coda[t].dati[pr].index_wel_attesa++;
-                index = ospedale[i].coda[t].dati[pr].index_wel_attesa;
-                diff = ospedale[i].coda[t].dati[pr].area*ospedale[i].coda[t].media_interarrivi - ospedale[i].coda[t].dati[pr].area / ((ospedale[i].coda[t].dati[pr].accessi_normali +
-                                                                                                ospedale[i].coda[t].dati[pr].accessi_altre_code +
-                                                                                                ospedale[i].coda[t].dati[pr].accessi_altri_ospedali));
-                ospedale[i].coda[t].dati[pr].varianza_wel_attesa += diff * diff * (index - 1.0) / index;
             }
         }
     }
 
+}
+
+void azzera_statistiche() {
+
+    tempo_attuale = 0;
+    for (int i = 0; i < NOSPEDALI; i++) {
+        for (int t = 0; t < NTYPE; t++) {
+            for (int pr = 0; pr < ospedale[i].coda[t].livello_pr; pr++) {
+                ospedale[i].coda[t].dati[pr].area = 0;
+                ospedale[i].coda[t].dati[pr].varianza_wel_numero_pazienti = 0;
+                ospedale[i].coda[t].dati[pr].index_wel_numero_pazienti = 1;
+                ospedale[i].coda[t].dati[pr].varianza_wel_attesa = 0;
+                ospedale[i].coda[t].dati[pr].index_wel_attesa = 1;
+            }
+        }
+    }
+    for (int i = 0; i < NOSPEDALI; i++) {
+        for (int t = 0; t < NTYPE; t++) {
+            for (int j = 0; j < ospedale[i].num_reparti[t]; j++) {
+                for (int k = 0; k < ospedale[i].reparto[t][j].num_letti; k++) 
+                    ospedale[i].reparto[t][j].letto[k].tempo_occupazione = 0;
+            }
+        }
+    }
 }
 
 void* simulation_start(void* input) {
@@ -689,12 +710,18 @@ void* simulation_start(void* input) {
 #endif
 
     inizializza_variabili_per_simulazione(in);
+#ifndef BATCH
     inizializza_csv_code(in,"_globali.csv");
     inizializza_csv_reparti(in, "_globali.csv");
+#endif
 #ifdef GEN_RT
     inizializza_csv_code(in,".csv");
     inizializza_csv_reparti(in, ".csv");
+#elif BATCH
+    inizializza_csv_code(in, "_batch.csv");
+    inizializza_csv_reparti(in, "_batch.csv");
 #endif
+
     descrittore_next_event* next_event = malloc(sizeof(descrittore_next_event));
     while (tempo_attuale < END) {
 
@@ -708,6 +735,17 @@ void* simulation_start(void* input) {
             step_simulazione(ospedale, NOSPEDALI, tempo_attuale, next_event, testa_trasferiti, 0);
         else
             step_simulazione(ospedale, NOSPEDALI, tempo_attuale, next_event, testa_trasferiti, 1);
+#endif
+
+#ifndef GEN_RT
+#ifdef BATCH
+        if (tick_globale == TICK_END)
+            goto end;
+        if (tick_globale % k == 0 && tick_globale != 0) {
+            genera_output_parziale();
+            azzera_statistiche();
+        }
+#endif
 #endif
         update_stats(next_event->tempo_ne);
         // gestisci eventi
@@ -732,9 +770,12 @@ void* simulation_start(void* input) {
         tempo_attuale = next_event->tempo_ne;  // manda avanti il tempo della simulazione
 #ifdef GEN_RT
         genera_output_parziale();
+#elif BATCH
+        tick_globale++;
 #endif
     }
     genera_output_globale();
+end:
     distruttore();
 
     return NULL;
@@ -742,9 +783,11 @@ void* simulation_start(void* input) {
 
 int inizializza_simulazioni() {
     int select, ret;
+#ifndef BATCH
     printf("\n------------------------------------------");
     printf("\n--- Progetto PMCSN -----------------------");
     printf("\n------------------------------------------\n\n");
+
 
     r_menu:
     printf("\n\n\nSelezionare il numero di simulazioni da svolgere: ");
@@ -789,6 +832,24 @@ int inizializza_simulazioni() {
 
 
     return select;
+
+#else
+#ifndef GEN_RT
+    printf("\n------------------------------------------");
+    printf("\n--- Progetto PMCSN - Modalita' BATCH -----");
+    printf("\n------------------------------------------\n\n");
+
+    int input[1] = { 0 };
+    b = sqrt(TICK_END / 8);
+    k = sqrt(TICK_END * 8);
+
+    simulation_start(&input[0]);
+
+    nsimulation = 1;
+#endif
+#endif
+
+    return 1;
 }
 
 

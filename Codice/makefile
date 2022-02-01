@@ -30,3 +30,5 @@ migliorativo_n:
 	$(CC) prog.c $(CCFLAGS) $(CFLAGS) $(flag_fissi) $(flag_normali) -DCOOPERAZIONE_OSPEDALI
 stat:
 	$(CC) teststat stat.c -DTESTSTAT
+batch:
+	$(CC) prog.c $(CCFLAGS) $(CFLAGS) $(flag_normali) -DBATCH

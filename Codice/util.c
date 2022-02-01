@@ -369,8 +369,12 @@ int estrai_ricoveri_giornata(int giornata) {
 	while ((line = csvgetline(csv)) != NULL 
 			&& index != giornata)
 		index++;
-	ret = atoi(csvfield(NRFIELD));
-
+	errno = 0;
+	ret = strtol(csvfield(NRFIELD), NULL, 10);
+	if (errno == ERANGE) {
+		printf("strtol error! Converted value: %s\n", csvfield(NRFIELD));
+		exit(0);
+	}
 	return ret; 
 }
 
