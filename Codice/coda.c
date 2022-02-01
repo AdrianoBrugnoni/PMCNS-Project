@@ -191,6 +191,8 @@ int rimuovi_primo_paziente(_coda_pr* coda, double tempo_attuale) {
     // cerca il paziente con priorità più alta nella coda
     // ed eliminalo (poichè verrà spostato dentro il servente)
     paziente* p;
+    double diff;
+    int index;
     for (int pr = 0; pr < coda->livello_pr; pr++) {
         if (coda->testa[pr] != NULL) {
 
@@ -201,6 +203,13 @@ int rimuovi_primo_paziente(_coda_pr* coda, double tempo_attuale) {
             // aggiorno dati output
             coda->dati[pr].permanenza_serviti += tempo_attuale - p->ingresso;
             coda->dati[pr].usciti_serviti++;
+
+            coda->dati[pr].index_wel_attesa++;
+            index = coda->dati[pr].index_wel_attesa;
+            diff = tempo_attuale - p->ingresso - coda->dati[pr].area / (coda->dati[pr].accessi_normali +
+                coda->dati[pr].accessi_altre_code +
+                coda->dati[pr].accessi_altri_ospedali);
+            coda->dati[pr].varianza_wel_attesa += diff * diff * (index - 1.0) / index;
             free(p);
 
             return 0;

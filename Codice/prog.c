@@ -668,14 +668,6 @@ void update_stats(double time_next_event) {
                     ospedale[i].coda[t].dati[pr].usciti_morti -
                     ospedale[i].coda[t].dati[pr].usciti_aggravati) - ospedale[i].coda[t].dati[pr].area / tempo_attuale;
                 ospedale[i].coda[t].dati[pr].varianza_wel_numero_pazienti += diff * diff * (index - 1.0) / index;
-
-                // varianza attesa
-                ospedale[i].coda[t].dati[pr].index_wel_attesa++;
-                index = ospedale[i].coda[t].dati[pr].index_wel_attesa;
-                diff = ospedale[i].coda[t].dati[pr].area*ospedale[i].coda[t].media_interarrivi - ospedale[i].coda[t].dati[pr].area / ((ospedale[i].coda[t].dati[pr].accessi_normali +
-                                                                                                ospedale[i].coda[t].dati[pr].accessi_altre_code +
-                                                                                                ospedale[i].coda[t].dati[pr].accessi_altri_ospedali));
-                ospedale[i].coda[t].dati[pr].varianza_wel_attesa += diff * diff * (index - 1.0) / index;
             }
         }
     }
