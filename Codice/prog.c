@@ -828,7 +828,6 @@ wait:
 #ifdef WIN
     for (int i = wait_checkpoint; i < select; i++) {
         WaitForSingleObject(hThread[i], INFINITE);
-        printf("CIAO1\n");
         running_thread--;
         wait_checkpoint = i;
         goto spawn_thread;
