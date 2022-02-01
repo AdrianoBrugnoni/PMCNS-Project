@@ -619,9 +619,6 @@ void genera_output_globale() {
 }
 
 void distruttore() {
-    char command[500];
-    char path[50];
-
     // Chiudi tutti i canali di I/O
     __close();
 #ifndef BATCH
@@ -643,28 +640,6 @@ void distruttore() {
         }
     }
 #endif
-
-    //pulisco output directory
-    for (int i = 0; i < nsimulation; i++) {
-        strcpy(path, "./output/");
-        strcat(path, int_to_string(i));
-        strcat(path, "/output_globale");
-#ifdef WIN
-        mkdir(path);
-        strcpy(command, "powershell.exe ./directory_script.ps1 ");
-        strcat(command, int_to_string(i));
-#else
-        mkdir_p(path);
-        strcpy(command, "for f in ./output/");
-        strcat(command, int_to_string(i));
-        strcat(command, "/*global*; do mv \"$f\" ./output/");
-        strcat(command, int_to_string(i));
-        strcat(command, "/output_globale; done");
-#endif
-        system(command);
-        memset(path, 0, strlen(path));
-        memset(command, 0, strlen(command));
-    }
 }
 
 void update_stats(double time_next_event) {
@@ -841,12 +816,13 @@ int inizializza_simulazioni() {
 #ifdef WIN
     for (int i = 0; i < select; i++)
         WaitForSingleObject(hThread[i], INFINITE);
+
 #else
     for (int i = 0; i < select; i++)
         pthread_join(tid[i], NULL);
 #endif
 
-
+    organizzatore_directory(nsimulation);
     return select;
 
 #else

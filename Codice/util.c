@@ -378,6 +378,35 @@ int estrai_ricoveri_giornata(int giornata) {
 	return ret; 
 }
 
+void organizzatore_directory(int nsimulation) {
+	char command[500];
+	char path[50];
+	//pulisco output directory
+	for (int i = 0; i < nsimulation; i++) {
+		strcpy(path, "./output/");
+		strcat(path, int_to_string(i));
+		strcat(path, "/output_globale");
+#ifdef WIN
+		mkdir(path);
+		strcpy(command, "powershell.exe ./directory_script.ps1 ");
+		strcat(command, int_to_string(i));
+#else
+		mkdir_p(path);
+		strcpy(command, "for f in ./output/");
+		strcat(command, int_to_string(i));
+		strcat(command, "/*global*; do mv \"$f\" ./output/");
+		strcat(command, int_to_string(i));
+		strcat(command, "/output_globale; done");
+#endif
+#ifdef AUDIT
+		printf("Esecuzione comando: %d\n", i);
+#endif
+		system(command);
+		memset(path, 0, strlen(path));
+		memset(command, 0, strlen(command));
+	}
+}
+
 void __close() {
 	fclose(csv);
 }
