@@ -61,6 +61,7 @@ typedef struct {
 double tempo_trasferimento[NOSPEDALI][NOSPEDALI];
 double soglia_utilizzo;
 int nsimulation;
+double checkpoint_tempo = 0;            // utilizzato solamente nel calcolo delle statistiche per le Batch Means. Se sono disattivate le Batch Means varrà sempre 0 e non avrà alcuna semantica.
 #ifdef BATCH
 unsigned int tick_globale = 0;          // conteggio di tutti i tick per le batch means
 unsigned int b = 0;                     // coppia (b, k)
@@ -535,7 +536,7 @@ void genera_output(int tipo_output) {
                 dati[7] = int_to_string(ospedale[i].coda[t].dati[pr].permanenza_morti);
                 dati[8] = int_to_string(ospedale[i].coda[t].dati[pr].permanenza_aggravati);
                 dati[9] = int_to_string(t);
-                dati[10] = double_to_string(ospedale[i].coda[t].dati[pr].area / tempo_attuale);     //pazienti medi
+                dati[10] = double_to_string(ospedale[i].coda[t].dati[pr].area / (tempo_attuale- checkpoint_tempo));     //pazienti medi
                 dati[11] = double_to_string(sqrt(ospedale[i].coda[t].dati[pr].varianza_wel_numero_pazienti/ ospedale[i].coda[t].dati[pr].index_wel_numero_pazienti));  //varianza num pazienti
                 if(ospedale[i].coda[t].dati[pr].accessi_normali +                                   //attesa media
                    ospedale[i].coda[t].dati[pr].accessi_altre_code +
@@ -627,14 +628,8 @@ void distruttore() {
         strcat(path, "/output_globale");
 #ifdef WIN
         mkdir(path);
-        strcpy(command, "$startPath = '.\\output\\");
+        strcpy(command, "powershell.exe ./directory_script.ps1 ");
         strcat(command, int_to_string(i));
-        strcat(command, "'\n");
-        strcat(command, "$magicWord = 'global'\nforeach($file in Get-ChildItem $startPath -File)\n{\nif($file.Name -match $magicWord)\n{\nMove-Item \".\\output\\");
-        strcat(command, int_to_string(i));
-        strcat(command, "\\$file\" .\\output\\");
-        strcat(command, int_to_string(i));
-        strcat(command, "\\test\n}\n}\n");
 #else
         mkdir_p(path);
         strcpy(command, "for f in ./output/");
@@ -671,7 +666,7 @@ void update_stats(double time_next_event) {
                     ospedale[i].coda[t].dati[pr].accessi_altri_ospedali -
                     ospedale[i].coda[t].dati[pr].usciti_serviti -
                     ospedale[i].coda[t].dati[pr].usciti_morti -
-                    ospedale[i].coda[t].dati[pr].usciti_aggravati) - ospedale[i].coda[t].dati[pr].area / tempo_attuale;
+                    ospedale[i].coda[t].dati[pr].usciti_aggravati) - ospedale[i].coda[t].dati[pr].area / (tempo_attuale- checkpoint_tempo);
                 ospedale[i].coda[t].dati[pr].varianza_wel_numero_pazienti += diff * diff * (index - 1.0) / index;
             }
         }
@@ -681,7 +676,7 @@ void update_stats(double time_next_event) {
 
 void azzera_statistiche() {
 
-    tempo_attuale = 0;
+    checkpoint_tempo = tempo_attuale;
     for (int i = 0; i < NOSPEDALI; i++) {
         for (int t = 0; t < NTYPE; t++) {
             for (int pr = 0; pr < ospedale[i].coda[t].livello_pr; pr++) {
