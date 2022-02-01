@@ -382,7 +382,7 @@ void processa_timeout(descrittore_next_event* ne) {
     _coda_pr* coda_di_timeout = &ospedale[ne->id_ospedale].coda[ne->tipo];
     int id_paziente = ne->id_paziente;
     int livello_priorita = ne->id_priorita;
-    int tempo_di_timeout = ne->tempo_ne;
+    double tempo_di_timeout = ne->tempo_ne;
 
     // elimina la persona dalla coda
     rimuovi_paziente(coda_di_timeout, id_paziente, livello_priorita, tempo_di_timeout);
@@ -394,7 +394,7 @@ void processa_aggravamento(descrittore_next_event* ne) {
     int pr_iniziale = ne->id_priorita;
     int pr_finale = pr_iniziale - 1;
     int id_paziente = ne->id_paziente;
-    int tempo_aggravamento = ne->tempo_ne;
+    double tempo_aggravamento = ne->tempo_ne;
 
     // muovi il paziente su un livello di priorità diverso nella coda
     cambia_priorita_paziente(coda_di_aggravamento, pr_iniziale, pr_finale, id_paziente, tempo_aggravamento);
