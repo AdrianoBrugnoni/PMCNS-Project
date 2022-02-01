@@ -773,7 +773,7 @@ end:
 }
 
 int inizializza_simulazioni() {
-    int select, ret;
+    int select, ret, running_thread = 0, index_checkpoint = 0, wait_checkpoint = 0;
 #ifndef BATCH
     printf("\n------------------------------------------");
     printf("\n--- Progetto PMCSN -----------------------");
@@ -785,7 +785,7 @@ int inizializza_simulazioni() {
     fflush(stdout);
     ret = scanf("%d", &select);
     getchar();
-    if (select <= 0 || select >= (MAXNSIMULATION/(NOSPEDALI*(2+NCODECOVID+NCODENCOVID)))-1 || ret != 1) goto r_menu;  // 2 sta per i due file corrispondenti alle due tipologie di reparti
+    if (select <= 0 || select >= 1000 || ret != 1) goto r_menu;  // 2 sta per i due file corrispondenti alle due tipologie di reparti
     nsimulation = select;
 #ifdef WIN
     int* input = (int*)malloc(sizeof(int) * select);
@@ -795,31 +795,53 @@ int inizializza_simulazioni() {
     int input[select];
     pthread_t tid[select];
 #endif
-    for (int i = 0; i < select; i++) {
+    spawn_thread:
+    for (int i = index_checkpoint; i < select; i++) {
         input[i] = i;
-        #ifdef WIN
-        hThread[i] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)simulation_start, (LPVOID)&input[i], NORMAL_PRIORITY_CLASS, tid);
-        if (hThread[i] == NULL) {
-            printf("Impossibile creare il thread. Errore: %d\n", ret);
-            fflush(stdout);
-            exit(-1);
-        }
-        #else
-        printf("%d < %d\n", i, select);
-        if (pthread_create(&tid[i], NULL, simulation_start, &input[i]) != 0) {
-            printf("Impossibile creare il thread. Errore: %d\n", ret);
-            fflush(stdout);
-            exit(-1);
-        }
-        #endif
-    }
+        if (running_thread < (MAXNSIMULATION / (NOSPEDALI * (2 + NCODECOVID + NCODENCOVID))) - 1) {
 #ifdef WIN
-    for (int i = 0; i < select; i++)
+            hThread[i] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)simulation_start, (LPVOID)&input[i], NORMAL_PRIORITY_CLASS, tid);
+            if (hThread[i] == NULL) {
+                printf("Impossibile creare il thread. Errore: %d\n", ret);
+                fflush(stdout);
+                exit(-1);
+            }
+#else
+#ifdef AUDIT
+            printf("%d < %d\n", i, select);
+#endif
+            if (pthread_create(&tid[i], NULL, simulation_start, &input[i]) != 0) {
+                printf("Impossibile creare il thread. Errore: %d\n", ret);
+                fflush(stdout);
+                exit(-1);
+            }
+#endif
+        }
+        else {
+            index_checkpoint = i;
+            goto wait;
+        }
+        running_thread++;
+    }
+wait:
+
+#ifdef WIN
+    for (int i = wait_checkpoint; i < select; i++) {
         WaitForSingleObject(hThread[i], INFINITE);
+        printf("CIAO1\n");
+        running_thread--;
+        wait_checkpoint = i;
+        goto spawn_thread;
+    }
+
 
 #else
-    for (int i = 0; i < select; i++)
+    for (int i = wait_checkpoint; i < select; i++) {
         pthread_join(tid[i], NULL);
+        running_thread--;
+        wait_checkpoint = i;
+        goto spawn_thread;
+    }
 #endif
 
     organizzatore_directory(nsimulation);
