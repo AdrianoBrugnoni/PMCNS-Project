@@ -33,4 +33,4 @@ migliorativo_n:
 stat:
 	$(CC) teststat stat.c -DTESTSTAT
 batch:
-	$(CC) prog.c $(CCFLAGS) $(CFLAGS) $(flag_normali) -DBATCH
+	$(CC) prog.c $(CCFLAGS) $(CFLAGS) -DTERAPIE_VARIABILI -DABILITA_AGGRAVAMENTO -DABILITA_TIMEOUT -DBATCH

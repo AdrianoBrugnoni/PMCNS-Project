@@ -20,6 +20,10 @@ typedef struct {    // dati per un singolo livello di priorità della coda
     double varianza_wel_attesa;             // valore intermedio per calcolo varianza welford
     int index_wel_attesa;                   // indice welford attesa
 
+#ifdef BATCH
+    unsigned long accessi_batch;            //numero di accessi durante il singolo batch
+#endif
+
 } dati_coda;
 
 typedef struct {
@@ -89,6 +93,10 @@ void inizializza_coda_pr(_coda_pr* coda, int livello_pr, double media_interarriv
         coda->dati[pr].index_wel_numero_pazienti = 1;
         coda->dati[pr].varianza_wel_attesa = 0;
         coda->dati[pr].index_wel_attesa = 1;
+
+#ifdef BATCH
+        coda->dati[pr].accessi_batch = 0;
+#endif
     }
 }
 
@@ -165,10 +173,21 @@ void aggiungi_paziente(_coda_pr* coda, paziente* p, int tipo_ingresso) {
     // aggiungilo in fondo alla coda e aggiorna statistiche di output
     aggiungi_in_coda(&coda->testa[num_coda], p);
 
-    if(tipo_ingresso == TRASFERITO)
+    if (tipo_ingresso == TRASFERITO) {
         coda->dati[num_coda].accessi_altri_ospedali++;
-    else if(tipo_ingresso == DIRETTO)
+#ifdef BATCH 
+        coda->dati[num_coda].accessi_batch++; 
+#endif
+    }
+
+    else if (tipo_ingresso == DIRETTO) {
         coda->dati[num_coda].accessi_normali++;
+#ifdef BATCH 
+        coda->dati[num_coda].accessi_batch++;
+#endif
+    }
+
+
 }
 
 void segnala_morte_in_trasferimento(_coda_pr* coda, int pr) {
@@ -235,6 +254,9 @@ void cambia_priorita_paziente(_coda_pr* coda, int pr_iniziale, int pr_finale, in
     aggiungi_in_coda(&coda->testa[pr_finale], p);
 
     coda->dati[pr_finale].accessi_altre_code++;
+#ifdef BATCH 
+    coda->dati[pr_finale].accessi_batch++;
+#endif
 }
 
 #ifdef TESTCODA

@@ -538,13 +538,21 @@ void genera_output(int tipo_output) {
                 dati[9] = int_to_string(t);
                 dati[10] = double_to_string(ospedale[i].coda[t].dati[pr].area / (tempo_attuale- checkpoint_tempo));     //pazienti medi
                 dati[11] = double_to_string(sqrt(ospedale[i].coda[t].dati[pr].varianza_wel_numero_pazienti/ ospedale[i].coda[t].dati[pr].index_wel_numero_pazienti));  //varianza num pazienti
-                if(ospedale[i].coda[t].dati[pr].accessi_normali +                                   //attesa media
-                   ospedale[i].coda[t].dati[pr].accessi_altre_code +
-                   ospedale[i].coda[t].dati[pr].accessi_altri_ospedali != 0)
+#ifdef BATCH
+                if(ospedale[i].coda[t].dati[pr].accessi_batch != 0)
                 {
+
+                    dati[12] = double_to_string(ospedale[i].coda[t].dati[pr].area / ospedale[i].coda[t].dati[pr].accessi_batch);
+#else
+                if (ospedale[i].coda[t].dati[pr].accessi_normali +                                   //attesa media
+                    ospedale[i].coda[t].dati[pr].accessi_altre_code +
+                    ospedale[i].coda[t].dati[pr].accessi_altri_ospedali != 0)
+                {
+
                     dati[12] = double_to_string(ospedale[i].coda[t].dati[pr].area / (ospedale[i].coda[t].dati[pr].accessi_normali+
                                                                                     ospedale[i].coda[t].dati[pr].accessi_altre_code+
                                                                                     ospedale[i].coda[t].dati[pr].accessi_altri_ospedali));
+#endif
                 }
                 else
                     dati[12] = double_to_string(0.0);
@@ -620,7 +628,9 @@ void genera_output_globale() {
 
 void distruttore() {
     // Chiudi tutti i canali di I/O
+#ifdef FLUSSO_COVID_VARIABILE
     __close();
+#endif
 #ifndef BATCH
     //code
     int index;
@@ -681,6 +691,7 @@ void azzera_statistiche() {
                 ospedale[i].coda[t].dati[pr].index_wel_numero_pazienti = 1;
                 ospedale[i].coda[t].dati[pr].varianza_wel_attesa = 0;
                 ospedale[i].coda[t].dati[pr].index_wel_attesa = 1;
+                ospedale[i].coda[t].dati[pr].accessi_batch = 0;
             }
         }
     }
@@ -730,8 +741,9 @@ void* simulation_start(void* input) {
 
 #ifndef GEN_RT
 #ifdef BATCH
-        if (tick_globale == TICK_END)
-            goto end;
+
+        if (tick_globale == TICK_END) goto end;
+
         if (tick_globale % k == 0 && tick_globale != 0) {
             genera_output_parziale();
             azzera_statistiche();
@@ -768,7 +780,6 @@ void* simulation_start(void* input) {
     genera_output_globale();
 end:
     distruttore();
-
     return NULL;
 }
 
@@ -834,8 +845,6 @@ wait:
     wait_checkpoint++;
     if (wait_checkpoint < nsimulation)    goto spawn_thread;
     organizzatore_directory(nsimulation);
-    return select;
-
 #else
 #ifndef GEN_RT
     printf("\n------------------------------------------");
@@ -846,13 +855,12 @@ wait:
     b = sqrt(TICK_END / 8);
     k = sqrt(TICK_END * 8);
 
-    simulation_start(&input[0]);
-
     nsimulation = 1;
+    simulation_start(&input[0]);
 #endif
 #endif
 
-    return 1;
+    return nsimulation;
 }
 
 
@@ -871,6 +879,7 @@ int main() {
     #else
     inizializza_simulazioni();
     #endif
+    printf("\n\nDONE!\n");
     return 0;
 }
 #endif
