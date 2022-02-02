@@ -826,23 +826,13 @@ int inizializza_simulazioni() {
 wait:
 
 #ifdef WIN
-    for (int i = wait_checkpoint; i < select; i++) {
-        WaitForSingleObject(hThread[i], INFINITE);
-        running_thread--;
-        wait_checkpoint = i;
-        goto spawn_thread;
-    }
-
-
+    WaitForSingleObject(hThread[wait_checkpoint], INFINITE);
 #else
-    for (int i = wait_checkpoint; i < select; i++) {
-        pthread_join(tid[i], NULL);
-        running_thread--;
-        wait_checkpoint = i;
-        goto spawn_thread;
-    }
+    pthread_join(tid[wait_checkpoint], NULL);
 #endif
-
+    running_thread--;
+    wait_checkpoint++;
+    if (wait_checkpoint < nsimulation)    goto spawn_thread;
     organizzatore_directory(nsimulation);
     return select;
 
