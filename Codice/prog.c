@@ -691,7 +691,9 @@ void azzera_statistiche() {
                 ospedale[i].coda[t].dati[pr].index_wel_numero_pazienti = 1;
                 ospedale[i].coda[t].dati[pr].varianza_wel_attesa = 0;
                 ospedale[i].coda[t].dati[pr].index_wel_attesa = 1;
+#ifdef BATCH
                 ospedale[i].coda[t].dati[pr].accessi_batch = 0;
+#endif
             }
         }
     }
