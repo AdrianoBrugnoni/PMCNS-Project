@@ -726,8 +726,9 @@ void* simulation_start(void* input) {
     inizializza_csv_reparti(in, "_batch.csv");
 #endif
 
+    double fine_simulazione = END;
     descrittore_next_event* next_event = malloc(sizeof(descrittore_next_event));
-    while (tempo_attuale < END) {
+    while (tempo_attuale < fine_simulazione) {
 
         ottieni_next_event(next_event);
 
@@ -743,7 +744,7 @@ void* simulation_start(void* input) {
 
 #ifndef GEN_RT
 #ifdef BATCH
-        END = next_event->tempo_ne + 1;
+        fine_simulazione = next_event->tempo_ne + 1;
         if (tick_globale == TICK_END)
             goto end;
         if (tick_globale % k == 0 && tick_globale != 0) {
