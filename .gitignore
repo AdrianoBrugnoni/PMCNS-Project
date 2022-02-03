@@ -6,6 +6,7 @@ prog
 *.sqlite
 *.out
 *.csv
+*.xlsx
 stat
 teststat
 *.obj
