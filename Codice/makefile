@@ -1,5 +1,5 @@
 flag_fissi=-DGEN_RT
-flag_normali=-DTERAPIE_VARIABILI -DFLUSSO_COVID_VARIABILE -DABILITA_AGGRAVAMENTO -DABILITA_TIMEOUT
+flag_normali=-DTERAPIE_VARIABILI -DFLUSSO_COVID_VARIABILE -DABILITA_AGGRAVAMENTO -DABILITA_TIMEOUT -DORGANIZZA_DIRECTORY
 nome_eseguibile=prog
 
 ifeq ($(OS),Windows_NT)
@@ -25,7 +25,7 @@ normale:
 normale_n:
 	$(CC) prog.c $(CCFLAGS) $(CFLAGS) $(flag_fissi) $(flag_normali)
 global_only:
-	$(CC) prog.c $(CCFLAGS) $(CFLAGS) $(flag_normali)
+	$(CC) prog.c $(CCFLAGS) $(CFLAGS) -DTERAPIE_VARIABILI -DABILITA_AGGRAVAMENTO -DABILITA_TIMEOUT
 migliorativo:
 	$(CC) prog.c $(CCFLAGS) $(CFLAGS) $(flag_fissi) $(flag_normali) -DCOOPERAZIONE_OSPEDALI -DSIM_INTERATTIVA
 migliorativo_n:

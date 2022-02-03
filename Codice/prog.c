@@ -798,7 +798,7 @@ int inizializza_simulazioni() {
     fflush(stdout);
     ret = scanf("%d", &select);
     getchar();
-    if (select <= 0 || select >= 1000 || ret != 1) goto r_menu;  // 2 sta per i due file corrispondenti alle due tipologie di reparti
+    if (select <= 0 || select > STREAMS || ret != 1) goto r_menu;
     nsimulation = select;
 #ifdef WIN
     int* input = (int*)malloc(sizeof(int) * select);
@@ -811,7 +811,7 @@ int inizializza_simulazioni() {
     spawn_thread:
     for (int i = index_checkpoint; i < select; i++) {
         input[i] = i;
-        if (running_thread < (MAXNSIMULATION / (NOSPEDALI * (2 + NCODECOVID + NCODENCOVID))) - 1) {
+        if (running_thread < (MAXNSIMULATION / (NOSPEDALI * (2 + NCODECOVID + NCODENCOVID))) - 1) { // 2 sta per i due file corrispondenti alle due tipologie di reparti
 #ifdef WIN
             hThread[i] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)simulation_start, (LPVOID)&input[i], NORMAL_PRIORITY_CLASS, tid);
             if (hThread[i] == NULL) {
