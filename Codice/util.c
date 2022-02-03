@@ -116,8 +116,23 @@ char* int_to_string(int val) {
 }
 
 char* double_to_string(double val) {
-	char* str = (char*)malloc(sizeof(char) * 12);
-	snprintf(str, 50, "%f", val);
+
+	int max_size = 30;
+	char* str = (char*)malloc(sizeof(char) * max_size);
+	snprintf(str, max_size, "%f", val);
+	
+	#ifdef MAC_OS
+	// sostituisci il carattere '.' con il carattere ','
+	int i=0;
+	while(str[i] != '\0') {
+		if(str[i] == '.') {
+			str[i] = ',';
+			return str;
+		}
+		i++;
+	}
+	#endif
+
 	return str;
 }
 
