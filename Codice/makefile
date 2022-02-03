@@ -20,6 +20,8 @@ semplice:
 	$(CC) prog.c $(CCFLAGS) $(CFLAGS) $(flag_fissi) -DSIM_INTERATTIVA
 semplice_n:
 	$(CC) prog.c $(CCFLAGS) $(CFLAGS) $(flag_fissi)
+semplice_batch:
+	$(CC) prog.c $(CCFLAGS) $(CFLAGS) -DBATCH
 normale:
 	$(CC) prog.c $(CCFLAGS) $(CFLAGS) $(flag_fissi) $(flag_normali) -DSIM_INTERATTIVA
 normale_n:
