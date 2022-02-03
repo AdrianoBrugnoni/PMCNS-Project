@@ -846,7 +846,9 @@ wait:
     running_thread--;
     wait_checkpoint++;
     if (wait_checkpoint < nsimulation)    goto spawn_thread;
+#ifdef ORGANIZZA_DIRECTORY
     organizzatore_directory(nsimulation);
+#endif
 #else
 #ifndef GEN_RT
     printf("\n------------------------------------------");
