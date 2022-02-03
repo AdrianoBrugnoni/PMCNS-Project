@@ -1,12 +1,13 @@
 #define START 0					// inizio all'ora 0
-#define END 24*90				// termine simulazione al giorno 90
 
 #ifdef BATCH
-#define TICK_END 100*100*100*100    // numero di eventi massimi per la simulazione batch
-#endif
-
-
+#define TICK_END 100*100*100*10         // numero di eventi massimi per la simulazione batch
+#define END 18446744073709551615LU 		// valore irraggiungibile
+#define INF 18446744073709551615LU 		// valore irraggiungibile
+#else
+#define END 24*90				// termine simulazione al giorno x
 #define INF 100*END			    // tempo irraggiungibile
+#endif
 
 #define NOSPEDALI 1             // numero di ospedali nella simulazione
 

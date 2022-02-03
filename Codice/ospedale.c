@@ -79,6 +79,37 @@ void inizializza_ospedale(_ospedale* o, _parametri_ospedale* param) {
     inizializza_coda_pr(&o->coda[NCOVID], NCODENCOVID, param->media_interarrivo_coda_normale, NCOVID);
 }
 
+void azzera_statistiche_ospedale(_ospedale* o, double tempo_attuale) {
+
+    for (int t = 0; t < NTYPE; t++) {
+        for (int pr = 0; pr < o->coda[t].livello_pr; pr++) {
+            o->coda[t].dati[pr].area = 0;
+            o->coda[t].dati[pr].varianza_wel_numero_pazienti = 0;
+            o->coda[t].dati[pr].index_wel_numero_pazienti = 1;
+            o->coda[t].dati[pr].varianza_wel_attesa = 0;
+            o->coda[t].dati[pr].index_wel_attesa = 1;
+
+            o->storico[t].tempo_occupazione_letti = 0;
+            o->storico[t].pazienti_entrati = 0;
+            o->storico[t].pazienti_usciti = 0;
+            o->storico[t].somma_utilizzazione_letti = 0;
+            o->storico[t].numero_letti_dismessi = 0;
+            #ifdef BATCH
+            o->coda[t].dati[pr].accessi_batch = 0;
+            #endif
+        }
+    }
+
+    for (int t = 0; t < NTYPE; t++) {
+        for (int j = 0; j < o->num_reparti[t]; j++) {
+            for (int k = 0; k < o->reparto[t][j].num_letti; k++) {
+                o->reparto[t][j].letto[k].tempo_occupazione = 0;
+                o->reparto[t][j].letto[k].tempo_nascita = tempo_attuale;
+            }
+        }
+    }
+}
+
 int prova_transizione_reparto(_ospedale* o, int id_reparto, int tipo, double tempo_attuale) {
 
     // reparto[tipo][id_reparto] è il reparto in cui è avvenuto un completamento

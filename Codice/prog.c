@@ -157,7 +157,7 @@ void inizializza_variabili_per_simulazione(int stream) {
             param.letti_per_reparto = 2;
             param.num_reparti_covid = 2;
             param.num_min_reparti_covid = 1;
-            param.num_reparti_normali = 3;
+            param.num_reparti_normali = 1;
             param.num_min_reparti_normali = 1;
             param.soglia_aumento = 80;
             param.soglia_riduzione = 50;
@@ -536,7 +536,7 @@ void genera_output(int tipo_output) {
                 dati[7] = int_to_string(ospedale[i].coda[t].dati[pr].permanenza_morti);
                 dati[8] = int_to_string(ospedale[i].coda[t].dati[pr].permanenza_aggravati);
                 dati[9] = int_to_string(t);
-                dati[10] = double_to_string(ospedale[i].coda[t].dati[pr].area / (tempo_attuale- checkpoint_tempo));     //pazienti medi
+                dati[10] = double_to_string(ospedale[i].coda[t].dati[pr].area / (tempo_attuale - checkpoint_tempo));     //pazienti medi
                 dati[11] = double_to_string(sqrt(ospedale[i].coda[t].dati[pr].varianza_wel_numero_pazienti/ ospedale[i].coda[t].dati[pr].index_wel_numero_pazienti));  //varianza num pazienti
 #ifdef BATCH
                 if(ospedale[i].coda[t].dati[pr].accessi_batch != 0)
@@ -586,9 +586,9 @@ void genera_output(int tipo_output) {
                     
                     // l'ultimo evento della simulazione potrebbe aver comportato uno switch di reparti
                     // in questo caso ci saranno dei letti con tempo di vita pari a 0 e ne va tenuto conto
-                    if(tempo_attuale - ospedale[i].reparto[t][j].letto[k].tempo_nascita != 0) {
+                    if((tempo_attuale - ospedale[i].reparto[t][j].letto[k].tempo_nascita) != 0) {
                         dati_temp[3] += ((double)ospedale[i].reparto[t][j].letto[k].tempo_occupazione/
-                                            (tempo_attuale-ospedale[i].reparto[t][j].letto[k].tempo_nascita)); // percentuale di tempo per cui il letto è stato occupato
+                                            (tempo_attuale - ospedale[i].reparto[t][j].letto[k].tempo_nascita)); // percentuale di tempo per cui il letto è stato occupato
                         num_letti++;
                     }
                 }
@@ -672,39 +672,12 @@ void update_stats(double time_next_event) {
                     ospedale[i].coda[t].dati[pr].accessi_altri_ospedali -
                     ospedale[i].coda[t].dati[pr].usciti_serviti -
                     ospedale[i].coda[t].dati[pr].usciti_morti -
-                    ospedale[i].coda[t].dati[pr].usciti_aggravati) - ospedale[i].coda[t].dati[pr].area / (tempo_attuale- checkpoint_tempo);
+                    ospedale[i].coda[t].dati[pr].usciti_aggravati) - ospedale[i].coda[t].dati[pr].area / (tempo_attuale - checkpoint_tempo);
                 ospedale[i].coda[t].dati[pr].varianza_wel_numero_pazienti += diff * diff * (index - 1.0) / index;
             }
         }
     }
 
-}
-
-void azzera_statistiche() {
-
-    checkpoint_tempo = tempo_attuale;
-    for (int i = 0; i < NOSPEDALI; i++) {
-        for (int t = 0; t < NTYPE; t++) {
-            for (int pr = 0; pr < ospedale[i].coda[t].livello_pr; pr++) {
-                ospedale[i].coda[t].dati[pr].area = 0;
-                ospedale[i].coda[t].dati[pr].varianza_wel_numero_pazienti = 0;
-                ospedale[i].coda[t].dati[pr].index_wel_numero_pazienti = 1;
-                ospedale[i].coda[t].dati[pr].varianza_wel_attesa = 0;
-                ospedale[i].coda[t].dati[pr].index_wel_attesa = 1;
-#ifdef BATCH
-                ospedale[i].coda[t].dati[pr].accessi_batch = 0;
-#endif
-            }
-        }
-    }
-    for (int i = 0; i < NOSPEDALI; i++) {
-        for (int t = 0; t < NTYPE; t++) {
-            for (int j = 0; j < ospedale[i].num_reparti[t]; j++) {
-                for (int k = 0; k < ospedale[i].reparto[t][j].num_letti; k++) 
-                    ospedale[i].reparto[t][j].letto[k].tempo_occupazione = 0;
-            }
-        }
-    }
 }
 
 void* simulation_start(void* input) {
@@ -726,9 +699,8 @@ void* simulation_start(void* input) {
     inizializza_csv_reparti(in, "_batch.csv");
 #endif
 
-    double fine_simulazione = END;
     descrittore_next_event* next_event = malloc(sizeof(descrittore_next_event));
-    while (tempo_attuale < fine_simulazione) {
+    while (tempo_attuale < END) {
 
         ottieni_next_event(next_event);
 
@@ -744,15 +716,18 @@ void* simulation_start(void* input) {
 
 #ifndef GEN_RT
 #ifdef BATCH
-        fine_simulazione = next_event->tempo_ne + 1;
         if (tick_globale == TICK_END)
             goto end;
         if (tick_globale % k == 0 && tick_globale != 0) {
+
             genera_output_parziale();
-            azzera_statistiche();
+            checkpoint_tempo = tempo_attuale;
+            for(int i=0; i<NOSPEDALI; i++)
+                azzera_statistiche_ospedale(&ospedale[i], tempo_attuale);
         }
 #endif
 #endif
+
         update_stats(next_event->tempo_ne);
         // gestisci eventi
         if (next_event->evento == ARRIVO) {
