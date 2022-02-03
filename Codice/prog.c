@@ -556,6 +556,7 @@ void genera_output(int tipo_output) {
                 }
                 else
                     dati[12] = double_to_string(0.0);
+
                 dati[13] = double_to_string(sqrt(ospedale[i].coda[t].dati[pr].varianza_wel_attesa / ospedale[i].coda[t].dati[pr].index_wel_attesa)); //varianza attesa
                 dati[14] = double_to_string(tempo_attuale);                                         //tempo simulazione
                 if(tipo_output == 0)

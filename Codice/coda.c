@@ -225,7 +225,13 @@ int rimuovi_primo_paziente(_coda_pr* coda, double tempo_attuale) {
             coda->dati[pr].index_wel_attesa++;
             index = coda->dati[pr].index_wel_attesa;
 #ifdef BATCH
-            diff = tempo_attuale - p->ingresso - coda->dati[pr].area / coda->dati[pr].accessi_batch;
+            // Quando cambio batch potrei avere già dai pazienti in coda che verranno serviti
+            // (e quindi rimossi dalla coda) ma avere ancora 0 nuovi accessi. Quindi potrei 
+            // trovarmi a dividere per 0
+            if(coda->dati[pr].accessi_batch == 0)
+                diff = 0;
+            else
+                diff = tempo_attuale - p->ingresso - coda->dati[pr].area / coda->dati[pr].accessi_batch;
 #else
             diff = tempo_attuale - p->ingresso - coda->dati[pr].area / (coda->dati[pr].accessi_normali +
                 coda->dati[pr].accessi_altre_code +
