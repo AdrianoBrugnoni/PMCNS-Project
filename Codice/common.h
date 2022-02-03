@@ -1,9 +1,8 @@
 #define START 0					// inizio all'ora 0
-#ifndef BATCH
 #define END 24*90				// termine simulazione al giorno 90
-#else
-#define END 10000000000		    // invalido la macro
-#define TICK_END 10000          // numero di eventi massimi per la simulazione
+
+#ifdef BATCH
+#define TICK_END 100*100*100*100    // numero di eventi massimi per la simulazione batch
 #endif
 
 

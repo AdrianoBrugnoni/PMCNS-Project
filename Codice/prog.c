@@ -132,7 +132,7 @@ void inizializza_variabili() {
     timeout_paziente[COVID] = 30;
     timeout_paziente[NCOVID] = 15;
 
-    servizio_paziente[COVID] = 0.33333333; // 3 serviti per tick
+    servizio_paziente[COVID] = 0.2; // 5 serviti per tick
     servizio_paziente[NCOVID] = 0.33333333; // 3 serviti per tick
 
     soglia_utilizzo = 0.5;
@@ -153,7 +153,7 @@ void inizializza_variabili_per_simulazione(int stream) {
 
         if(i==0) {
             param.media_interarrivo_coda_covid = 0.1; // 10 arrivi per tick
-            param.media_interarrivo_coda_normale = 0.1; // 10 arrivi per tick
+            param.media_interarrivo_coda_normale = 0; // 10 arrivi per tick
             param.letti_per_reparto = 2;
             param.num_reparti_covid = 2;
             param.num_min_reparti_covid = 1;
@@ -730,6 +730,7 @@ void* simulation_start(void* input) {
 
 #ifndef GEN_RT
 #ifdef BATCH
+        END = next_event->tempo_ne + 1;
         if (tick_globale == TICK_END)
             goto end;
         if (tick_globale % k == 0 && tick_globale != 0) {
