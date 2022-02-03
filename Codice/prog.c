@@ -538,13 +538,21 @@ void genera_output(int tipo_output) {
                 dati[9] = int_to_string(t);
                 dati[10] = double_to_string(ospedale[i].coda[t].dati[pr].area / (tempo_attuale- checkpoint_tempo));     //pazienti medi
                 dati[11] = double_to_string(sqrt(ospedale[i].coda[t].dati[pr].varianza_wel_numero_pazienti/ ospedale[i].coda[t].dati[pr].index_wel_numero_pazienti));  //varianza num pazienti
-                if(ospedale[i].coda[t].dati[pr].accessi_normali +                                   //attesa media
-                   ospedale[i].coda[t].dati[pr].accessi_altre_code +
-                   ospedale[i].coda[t].dati[pr].accessi_altri_ospedali != 0)
+#ifdef BATCH
+                if(ospedale[i].coda[t].dati[pr].accessi_batch != 0)
                 {
+
+                    dati[12] = double_to_string(ospedale[i].coda[t].dati[pr].area / ospedale[i].coda[t].dati[pr].accessi_batch);
+#else
+                if (ospedale[i].coda[t].dati[pr].accessi_normali +                                   //attesa media
+                    ospedale[i].coda[t].dati[pr].accessi_altre_code +
+                    ospedale[i].coda[t].dati[pr].accessi_altri_ospedali != 0)
+                {
+
                     dati[12] = double_to_string(ospedale[i].coda[t].dati[pr].area / (ospedale[i].coda[t].dati[pr].accessi_normali+
                                                                                     ospedale[i].coda[t].dati[pr].accessi_altre_code+
                                                                                     ospedale[i].coda[t].dati[pr].accessi_altri_ospedali));
+#endif
                 }
                 else
                     dati[12] = double_to_string(0.0);
@@ -620,7 +628,9 @@ void genera_output_globale() {
 
 void distruttore() {
     // Chiudi tutti i canali di I/O
+#ifdef FLUSSO_COVID_VARIABILE
     __close();
+#endif
 #ifndef BATCH
     //code
     int index;
@@ -681,6 +691,9 @@ void azzera_statistiche() {
                 ospedale[i].coda[t].dati[pr].index_wel_numero_pazienti = 1;
                 ospedale[i].coda[t].dati[pr].varianza_wel_attesa = 0;
                 ospedale[i].coda[t].dati[pr].index_wel_attesa = 1;
+#ifdef BATCH
+                ospedale[i].coda[t].dati[pr].accessi_batch = 0;
+#endif
             }
         }
     }
@@ -769,7 +782,6 @@ void* simulation_start(void* input) {
     genera_output_globale();
 end:
     distruttore();
-
     return NULL;
 }
 
@@ -786,7 +798,7 @@ int inizializza_simulazioni() {
     fflush(stdout);
     ret = scanf("%d", &select);
     getchar();
-    if (select <= 0 || select >= 1000 || ret != 1) goto r_menu;  // 2 sta per i due file corrispondenti alle due tipologie di reparti
+    if (select <= 0 || select > STREAMS || ret != 1) goto r_menu;
     nsimulation = select;
 #ifdef WIN
     int* input = (int*)malloc(sizeof(int) * select);
@@ -799,7 +811,7 @@ int inizializza_simulazioni() {
     spawn_thread:
     for (int i = index_checkpoint; i < select; i++) {
         input[i] = i;
-        if (running_thread < (MAXNSIMULATION / (NOSPEDALI * (2 + NCODECOVID + NCODENCOVID))) - 1) {
+        if (running_thread < (MAXNSIMULATION / (NOSPEDALI * (2 + NCODECOVID + NCODENCOVID))) - 1) { // 2 sta per i due file corrispondenti alle due tipologie di reparti
 #ifdef WIN
             hThread[i] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)simulation_start, (LPVOID)&input[i], NORMAL_PRIORITY_CLASS, tid);
             if (hThread[i] == NULL) {
@@ -834,9 +846,9 @@ wait:
     running_thread--;
     wait_checkpoint++;
     if (wait_checkpoint < nsimulation)    goto spawn_thread;
+#ifdef ORGANIZZA_DIRECTORY
     organizzatore_directory(nsimulation);
-    return select;
-
+#endif
 #else
 #ifndef GEN_RT
     printf("\n------------------------------------------");
@@ -847,13 +859,12 @@ wait:
     b = sqrt(TICK_END / 8);
     k = sqrt(TICK_END * 8);
 
-    simulation_start(&input[0]);
-
     nsimulation = 1;
+    simulation_start(&input[0]);
 #endif
 #endif
 
-    return 1;
+    return nsimulation;
 }
 
 
@@ -872,6 +883,7 @@ int main() {
     #else
     inizializza_simulazioni();
     #endif
+    printf("\n\nDONE!\n");
     return 0;
 }
 #endif
