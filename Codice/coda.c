@@ -79,6 +79,9 @@ void inizializza_coda_pr(_coda_pr* coda, int livello_pr, double media_interarriv
         coda->dati[pr].accessi_normali = 0;
         coda->dati[pr].accessi_altre_code = 0;
         coda->dati[pr].accessi_altri_ospedali = 0;
+#ifdef BATCH
+        coda->dati[pr].accessi_batch = 0;
+#endif
 
         coda->dati[pr].usciti_serviti = 0;
         coda->dati[pr].usciti_morti = 0;
@@ -93,10 +96,6 @@ void inizializza_coda_pr(_coda_pr* coda, int livello_pr, double media_interarriv
         coda->dati[pr].index_wel_numero_pazienti = 1;
         coda->dati[pr].varianza_wel_attesa = 0;
         coda->dati[pr].index_wel_attesa = 1;
-
-#ifdef BATCH
-        coda->dati[pr].accessi_batch = 0;
-#endif
     }
 }
 
@@ -225,9 +224,13 @@ int rimuovi_primo_paziente(_coda_pr* coda, double tempo_attuale) {
 
             coda->dati[pr].index_wel_attesa++;
             index = coda->dati[pr].index_wel_attesa;
+#ifdef BATCH
+            diff = tempo_attuale - p->ingresso - coda->dati[pr].area / coda->dati[pr].accessi_batch;
+#else
             diff = tempo_attuale - p->ingresso - coda->dati[pr].area / (coda->dati[pr].accessi_normali +
                 coda->dati[pr].accessi_altre_code +
                 coda->dati[pr].accessi_altri_ospedali);
+#endif
             coda->dati[pr].varianza_wel_attesa += diff * diff * (index - 1.0) / index;
             free(p);
 
