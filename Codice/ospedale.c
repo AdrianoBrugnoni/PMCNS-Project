@@ -5,6 +5,7 @@ typedef struct {
     double soglia_riduzione;    // valore di soglia per riduzione reparto covid
     int ampliamento_in_corso;   // 0 = non c'è ampliamento del reparto covid in corso, 1 = viceversa 
     int riduzione_in_corso;     // 0 = non c'è ampliamento del reparto non covid in corso, 1 = viceversa 
+    double peso_ospedale;       // coefficiente usato per pesare gli arrivi giornalieri nel Lazio rispetto al singolo ospedale
 
     _coda_pr coda[NTYPE];       // array di code con priorità per la terapia intensiva
                                 // coda[COVID] e coda[NCOVID]
@@ -31,11 +32,12 @@ typedef struct {
     int num_min_reparti_normali;
     int soglia_aumento;
     int soglia_riduzione; // non meno di 50 se si ha num_min_reparti_covid = 1 !!!
+    double peso_ospedale;
 
 } _parametri_ospedale;
 
 void evento_occupazione_cambiata(_ospedale*, double, int);
-
+int prova_muovi_paziente_in_letto(_ospedale*, double, int, int);
 
 void inizializza_ospedale(_ospedale* o, _parametri_ospedale* param) {
 
@@ -45,6 +47,7 @@ void inizializza_ospedale(_ospedale* o, _parametri_ospedale* param) {
     o->soglia_riduzione = param->soglia_riduzione;
     o->ampliamento_in_corso = 0;
     o->riduzione_in_corso = 0;
+    o->peso_ospedale = param->peso_ospedale;
 
     // inizializza reparti
 
@@ -72,11 +75,54 @@ void inizializza_ospedale(_ospedale* o, _parametri_ospedale* param) {
     // inizializza code con priorità
 
     #ifdef FLUSSO_COVID_VARIABILE
-    param->media_interarrivo_coda_covid = estrai_interarrivo_giornata(0);
+    param->media_interarrivo_coda_covid = estrai_interarrivo_giornata(0, o->peso_ospedale);
     #endif
 
     inizializza_coda_pr(&o->coda[COVID], NCODECOVID, param->media_interarrivo_coda_covid, COVID);
     inizializza_coda_pr(&o->coda[NCOVID], NCODENCOVID, param->media_interarrivo_coda_normale, NCOVID);
+}
+
+void inizializza_ospedale_condizioni_iniziali(_ospedale* o, _parametri_ospedale* param) {
+    inizializza_ospedale(o, param);
+
+    double occupazione_iniziale_covid = 0.1;
+    double occupazione_iniziale_generale = 0.5;
+
+    double letti_totali_covid = o->letti_per_reparto * o->num_reparti[COVID];
+    double letti_totali_generale = o->letti_per_reparto * o->num_reparti[NCOVID];
+
+    double letti_da_riempire_covid = letti_totali_covid * occupazione_iniziale_covid;
+    double letti_da_riempire_generale = letti_totali_generale * occupazione_iniziale_generale;
+
+    double tempo_inizio = START;
+
+    // dimezza momentaneamente i tempi medi di servizio
+    servizio_paziente[COVID] = servizio_paziente[COVID]/2;
+    servizio_paziente[NCOVID] = servizio_paziente[NCOVID]/2;
+
+    // genera letti_da_riempire_covid pazienti covid
+    for(int i=0; i<letti_da_riempire_covid; i++) {
+
+        paziente* p = genera_paziente(tempo_inizio, COVID);
+        aggiungi_paziente(&o->coda[COVID], p, DIRETTO);
+        prova_muovi_paziente_in_letto(o, tempo_inizio, COVID, 0);
+    }
+
+    // genera letti_da_riempire_generale pazienti normali
+    for(int i=0; i<letti_da_riempire_generale; i++) {
+
+        paziente* p = genera_paziente(tempo_inizio, NCOVID);
+        aggiungi_paziente(&o->coda[NCOVID], p, DIRETTO);
+        prova_muovi_paziente_in_letto(o, tempo_inizio, NCOVID, 0);
+    }
+
+    // ripristina i tempi medi di servizio
+    servizio_paziente[COVID] = servizio_paziente[COVID]*2;
+    servizio_paziente[NCOVID] = servizio_paziente[NCOVID]*2;
+
+    // azzera statistiche di entrata nelle code
+    azzera_dati_coda_pr(&o->coda[COVID]);
+    azzera_dati_coda_pr(&o->coda[NCOVID]);
 }
 
 void azzera_statistiche_ospedale(_ospedale* o, double tempo_attuale) {

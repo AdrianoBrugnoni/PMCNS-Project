@@ -47,17 +47,17 @@ void calcola_prossimo_arrivo_in_coda(_coda_pr* coda, double tempo_attuale) {
         coda->prossimo_arrivo = tempo_attuale + ottieni_prossimo_arrivo_in_coda(coda->media_interarrivi);
 }
 
-double estrai_interarrivo_giornata(int giorno_attuale) {
-    return SAMPLINGRATE / estrai_ricoveri_giornata(giorno_attuale);
+double estrai_interarrivo_giornata(int giorno_attuale, double peso_ospedale) {
+    return SAMPLINGRATE / ( (estrai_ricoveri_giornata(giorno_attuale)/10) * peso_ospedale );
 }
 
-void aggiorna_flusso_covid(_coda_pr* coda, int giorno_attuale, double tempo_attuale) {
+void aggiorna_flusso_covid(_coda_pr* coda, int giorno_attuale, double peso_ospedale, double tempo_attuale) {
     // esci se la coda non è covid
     if(coda->tipo != COVID)
         return;
     
     // ottieni il nuovo tasso di arrivo in funzione dei dati
-    coda->media_interarrivi = estrai_interarrivo_giornata(giorno_attuale);
+    coda->media_interarrivi = estrai_interarrivo_giornata(giorno_attuale, peso_ospedale);
 
     // se il prossimo arrivo non era definito, allora significa che
     // il precedente tasso di arrivo era pari a 0. Adesso si prova 
@@ -79,9 +79,37 @@ void inizializza_coda_pr(_coda_pr* coda, int livello_pr, double media_interarriv
         coda->dati[pr].accessi_normali = 0;
         coda->dati[pr].accessi_altre_code = 0;
         coda->dati[pr].accessi_altri_ospedali = 0;
-#ifdef BATCH
+        #ifdef BATCH
         coda->dati[pr].accessi_batch = 0;
-#endif
+        #endif
+
+        coda->dati[pr].usciti_serviti = 0;
+        coda->dati[pr].usciti_morti = 0;
+        coda->dati[pr].usciti_aggravati = 0;
+
+        coda->dati[pr].permanenza_serviti = 0;
+        coda->dati[pr].permanenza_morti = 0;
+        coda->dati[pr].permanenza_aggravati = 0;
+
+        coda->dati[pr].area = 0;
+        coda->dati[pr].varianza_wel_numero_pazienti = 0;
+        coda->dati[pr].index_wel_numero_pazienti = 1;
+        coda->dati[pr].varianza_wel_attesa = 0;
+        coda->dati[pr].index_wel_attesa = 1;
+    }
+}
+
+void azzera_dati_coda_pr(_coda_pr* coda) {
+
+    for(int pr=0; pr<coda->livello_pr; pr++) {
+        coda->testa[pr] = NULL;
+
+        coda->dati[pr].accessi_normali = 0;
+        coda->dati[pr].accessi_altre_code = 0;
+        coda->dati[pr].accessi_altri_ospedali = 0;
+        #ifdef BATCH
+        coda->dati[pr].accessi_batch = 0;
+        #endif
 
         coda->dati[pr].usciti_serviti = 0;
         coda->dati[pr].usciti_morti = 0;

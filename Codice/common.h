@@ -1,11 +1,11 @@
 #define START 0					// inizio all'ora 0
 
 #ifdef BATCH
-#define TICK_END 100*100*100*10         // numero di eventi massimi per la simulazione batch
+#define TICK_END 100*100*100*100        // numero di eventi massimi per la simulazione batch
 #define END 18446744073709551615LU 		// valore irraggiungibile
 #define INF 18446744073709551615LU 		// valore irraggiungibile
 #else
-#define END 24*90				// termine simulazione al giorno x
+#define END 24*429				// termine simulazione al giorno x
 #define INF 100*END			    // tempo irraggiungibile
 #endif
 
@@ -18,7 +18,7 @@
 #define DIRETTO 1
 
 #define NTYPE 2					// Numero tipi
-#define NRFIELD 7				// Numero del campo "Nuovi Ricoveri"
+#define NRFIELD 0				// Numero del campo "ingressi_terapia_intensiva"
 #define SAMPLINGRATE 24.0
 
 #define NCOLONNECODE 15

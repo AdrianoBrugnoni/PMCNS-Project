@@ -1,4 +1,4 @@
-flag_fissi=-DGEN_RT
+flag_fissi=-DGEN_RTT
 flag_normali=-DTERAPIE_VARIABILI -DFLUSSO_COVID_VARIABILE -DABILITA_AGGRAVAMENTO -DABILITA_TIMEOUT -DORGANIZZA_DIRECTORY
 nome_eseguibile=prog
 
@@ -24,8 +24,12 @@ semplice_batch:
 	$(CC) prog.c $(CCFLAGS) $(CFLAGS) -DBATCH
 normale:
 	$(CC) prog.c $(CCFLAGS) $(CFLAGS) $(flag_fissi) $(flag_normali) -DSIM_INTERATTIVA
+normale_cond:
+	$(CC) prog.c $(CCFLAGS) $(CFLAGS) $(flag_fissi) $(flag_normali) -DSIM_INTERATTIVA -DCONDIZIONI_INIZIALI
 normale_n:
 	$(CC) prog.c $(CCFLAGS) $(CFLAGS) $(flag_fissi) $(flag_normali)
+normale_n_cond:
+	$(CC) prog.c $(CCFLAGS) $(CFLAGS) $(flag_fissi) $(flag_normali) -DCONDIZIONI_INIZIALI
 global_only:
 	$(CC) prog.c $(CCFLAGS) $(CFLAGS) -DTERAPIE_VARIABILI -DABILITA_AGGRAVAMENTO -DABILITA_TIMEOUT
 migliorativo:

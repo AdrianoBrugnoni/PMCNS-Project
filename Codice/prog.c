@@ -129,11 +129,11 @@ void inizializza_variabili() {
     }
 
     // inizializza variabili simulazione
-    timeout_paziente[COVID] = 30;
-    timeout_paziente[NCOVID] = 15;
+    timeout_paziente[COVID] = 3;
+    timeout_paziente[NCOVID] = 3;
 
-    servizio_paziente[COVID] = 0.2; // 5 serviti per tick
-    servizio_paziente[NCOVID] = 0.33333333; // 3 serviti per tick
+    servizio_paziente[COVID] = 480; 
+    servizio_paziente[NCOVID] = 410; 
 
     soglia_utilizzo = 0.5;
 
@@ -152,15 +152,16 @@ void inizializza_variabili_per_simulazione(int stream) {
     for(int i=0; i<NOSPEDALI; i++) {
 
         if(i==0) {
-            param.media_interarrivo_coda_covid = 0.1; // 10 arrivi per tick
-            param.media_interarrivo_coda_normale = 0; // 10 arrivi per tick
-            param.letti_per_reparto = 2;
-            param.num_reparti_covid = 2;
+            param.media_interarrivo_coda_covid = 1; 
+            param.media_interarrivo_coda_normale = 20.8997;
+            param.letti_per_reparto = 8;
+            param.num_reparti_covid = 1;
             param.num_min_reparti_covid = 1;
-            param.num_reparti_normali = 1;
-            param.num_min_reparti_normali = 1;
-            param.soglia_aumento = 80;
-            param.soglia_riduzione = 50;
+            param.num_reparti_normali = 5;
+            param.num_min_reparti_normali = 2;
+            param.soglia_aumento = 70;
+            param.soglia_riduzione = 30;
+            param.peso_ospedale = 0.037483;
         } else {
             param.media_interarrivo_coda_covid = 6;
             param.media_interarrivo_coda_normale = 5;
@@ -171,8 +172,14 @@ void inizializza_variabili_per_simulazione(int stream) {
             param.num_min_reparti_normali = 1;
             param.soglia_aumento = 80;
             param.soglia_riduzione = 50;
+            param.peso_ospedale = 0.1;
         }
+
+        #ifdef CONDIZIONI_INIZIALI
+        inizializza_ospedale_condizioni_iniziali(&ospedale[i], &param);
+        #else
         inizializza_ospedale(&ospedale[i], &param);
+        #endif
     }
 
     tempo_attuale = START;
@@ -438,7 +445,7 @@ void processa_aggiorna_flussi_covid(descrittore_next_event* ne) {
 
     // per ogni coda COVID e NCOVID di ogni ospedale invoca:
     for(int i=0; i<NOSPEDALI; i++)
-        aggiorna_flusso_covid(&ospedale[i].coda[COVID], (prossimo_giorno/tick_per_giorno)-1, ne->tempo_ne);
+        aggiorna_flusso_covid(&ospedale[i].coda[COVID], (prossimo_giorno/tick_per_giorno)-1, ospedale[i].peso_ospedale, ne->tempo_ne);
 }
 
 // inizializzazione dei csv che memorizzano i dati real-time(RT) inerenti le code
