@@ -12,9 +12,9 @@ def trova_soluzione ():
 
     # definizione variabili
     
-    la = 0.8
-    mu_i = 1
-    m = 2
+    la = 10
+    mu_i = 5
+    m = 4
     p1 = 0.20;
     p2 = 0.30;
     p3 = 0.50;
