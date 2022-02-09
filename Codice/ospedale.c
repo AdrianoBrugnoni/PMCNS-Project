@@ -19,6 +19,8 @@ typedef struct {
                                 // reparto[COVID][i] per i da 0 num_reparti[COVID]
                                 // reparto[NCOVID][j] per j da 0 num_reparti[NCOVID]
 
+    double area[NTYPE];          // dati relativi ai reparti
+
 } _ospedale;
 
 typedef struct {
@@ -48,6 +50,9 @@ void inizializza_ospedale(_ospedale* o, _parametri_ospedale* param) {
     o->ampliamento_in_corso = 0;
     o->riduzione_in_corso = 0;
     o->peso_ospedale = param->peso_ospedale;
+
+    o->area[COVID] = 0;
+    o->area[NCOVID] = 0;
 
     // inizializza reparti
 
@@ -284,21 +289,25 @@ void interrompi_riduzione_reparto(_ospedale* o, int tipo) {
         o->riduzione_in_corso = 0;
 }
 
-double ottieni_occupazione_reparto_covid(_ospedale* o) {
+double ottieni_occupazione_reparto(_ospedale* o, int tipo) {
 
     double letti_totali = 0;
     double letti_occupati = 0;
 
-    for(int i=0; i<o->num_reparti[COVID]; i++) { // per ogni reparto covid dell'ospedale
-        for(int j=0; j<o->reparto[COVID][i].num_letti; j++) { // per ogni letto di quel reparto
+    for(int i=0; i<o->num_reparti[tipo]; i++) { // per ogni reparto covid dell'ospedale
+        for(int j=0; j<o->reparto[tipo][i].num_letti; j++) { // per ogni letto di quel reparto
             
             // conta i letti totali ed i letti occupati
             letti_totali += 1;
-            letti_occupati += o->reparto[COVID][i].letto[j].occupato;
+            letti_occupati += o->reparto[tipo][i].letto[j].occupato;
         }   
     }
 
-    return (letti_occupati / letti_totali) * 100;
+    return (letti_occupati / letti_totali);
+}
+
+double ottieni_occupazione_reparto_covid(_ospedale* o) {
+    return ottieni_occupazione_reparto(o, COVID) * 100;
 }
 
 double ottieni_livello_utilizzo_zona_covid(_ospedale* o) {

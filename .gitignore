@@ -11,3 +11,5 @@ stat
 teststat
 *.obj
 stat/covid_lazio.csv
+*.txt
+*.png

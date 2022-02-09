@@ -54,6 +54,11 @@ thread_local int estrazione_dati;				// variabile booleana che memorizza se i da
 thread_local FILE* csv;
 #endif
 
+struct data_sim {
+	unsigned long seed;
+	int stream;
+};
+
 int minv(int a, int b) {
     if (a > b)
         return b;
@@ -136,6 +141,28 @@ char* double_to_string(double val) {
 	return str;
 }
 
+double calcola_media_campionaria(double* campioni, int size) {
+
+	double somma_campioni = 0;
+
+	for(int i=BATCH_SCARTATI; i<size; i++) {
+		somma_campioni += campioni[i];
+	}
+
+	return somma_campioni / (size - BATCH_SCARTATI);
+}
+double calcola_varianza_campionaria(double* campioni, double media_campionaria, int size) {
+
+	double sommatoria = 0;
+
+	for(int i=BATCH_SCARTATI; i<size; i++) {
+		sommatoria += (campioni[i] - media_campionaria) * (campioni[i] - media_campionaria);
+	}
+
+	sommatoria = sommatoria / (size - 1 - BATCH_SCARTATI);
+
+	return sqrt(sommatoria);
+}
 
 #ifndef WIN
 // crea directory path e ritorna 0 se esiste già
@@ -207,6 +234,49 @@ int inizializza_csv(char* nome_csv, char** colonne, int num_colonne) {
         fflush(stdout);
 		exit(0);
 	}
+    return fd;
+}
+
+struct data_sim leggi_stato_simulazione(char* nome_file) {
+
+	FILE* file = fopen(nome_file, "r");
+
+    struct data_sim val = {0, 0};
+	fread(&val, sizeof(struct data_sim), 1, file);
+
+	fclose(file);
+
+	return val;
+}
+
+void salva_stato_simulazione(char* nome_file, unsigned long seed, int stream) {
+	
+	FILE* file = fopen(nome_file, "w");
+	
+    struct data_sim init = {seed, stream};
+    fwrite (&init, sizeof(struct data_sim), 1, file);
+	
+	fclose(file);
+}
+
+
+int inizializza_csv_append(char* nome_csv, char** colonne, int num_colonne) {
+    int fd;
+    int char_index;
+	int ret;
+    fd = open(nome_csv, O_APPEND|O_RDWR|O_CREAT, 0666);
+    if(fd == -1) {
+        printf("Errore creazione file %s, chiusura del programma (errno %d)\n", nome_csv, errno);
+        fflush(stdout);
+		exit(0);
+    }
+#ifdef MSEXEL
+	if ((ret = write(fd, "sep=,\n", 6)) == -1) {
+        printf("Errore scrittura file (cod 0), chiusura del programma (errno %d)\n", errno);
+        fflush(stdout);
+		exit(0);
+	}
+#endif
     return fd;
 }
 

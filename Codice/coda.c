@@ -21,7 +21,10 @@ typedef struct {    // dati per un singolo livello di priorità della coda
     int index_wel_attesa;                   // indice welford attesa
 
 #ifdef BATCH
-    unsigned long accessi_batch;            //numero di accessi durante il singolo batch
+    unsigned long accessi_batch;            // numero di accessi durante il singolo batch
+    int batch_attuale;
+    double campione_tempo_coda[MAX_BATCH];  // campionamenti per l'intervallo di confidenza
+    double campione_num_pazienti[MAX_BATCH];// campionamenti per l'intervallo di confidenza
 #endif
 
 } dati_coda;
@@ -81,6 +84,7 @@ void inizializza_coda_pr(_coda_pr* coda, int livello_pr, double media_interarriv
         coda->dati[pr].accessi_altri_ospedali = 0;
         #ifdef BATCH
         coda->dati[pr].accessi_batch = 0;
+        coda->dati[pr].batch_attuale = 0;
         #endif
 
         coda->dati[pr].usciti_serviti = 0;

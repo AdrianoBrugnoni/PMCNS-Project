@@ -2,7 +2,7 @@
 #define PERC_ADULTI 27          // percentuale pazienti adulti che accedono alla terapia intensiva covid
 #define PERC_ANZIANI 63         // percentuale pazienti anziani che accedono alla terapia intensiva covid (valore non usato)
 
-#define SOGLIA_GRAVITA 3        // valore soglia di timeout secondo il quale il paziente deve accedere
+#define SOGLIA_GRAVITA 1        // valore soglia di timeout secondo il quale il paziente deve accedere
                                 // urgentemente alla terapia intensiva
 
 #define GIOVANE 0               // tipi di paziente.classe_eta

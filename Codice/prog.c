@@ -57,6 +57,10 @@ typedef struct {
 #include "interattivo.c"            // fa uso di tutte le struct di sopra
 #endif
 
+#ifdef MULTI_THREAD
+#define OUTPUT_MORTI
+#endif
+
 // variabili globali
 double tempo_trasferimento[NOSPEDALI][NOSPEDALI];
 double soglia_utilizzo;
@@ -79,6 +83,7 @@ __thread int* fd_code[NOSPEDALI];
 __thread int* fd_code_global[NOSPEDALI];
 __thread int* fd_reparti[NOSPEDALI];
 __thread int* fd_reparti_global[NOSPEDALI];
+__thread int fd_dati_morti[NOSPEDALI];
 
 __thread double tempo_attuale;
 __thread double prossimo_giorno;
@@ -93,6 +98,7 @@ __declspec(thread) int* fd_code[NOSPEDALI];
 __declspec(thread) int* fd_code_global[NOSPEDALI];
 __declspec(thread) int* fd_reparti[NOSPEDALI];
 __declspec(thread) int* fd_reparti_global[NOSPEDALI];
+__declspec(thread) int fd_dati_morti[NOSPEDALI];
 
 __declspec(thread) double tempo_attuale;
 __declspec(thread) double prossimo_giorno;
@@ -107,6 +113,7 @@ thread_local int* fd_code[NOSPEDALI];
 thread_local int* fd_code_global[NOSPEDALI];
 thread_local int* fd_reparti[NOSPEDALI];
 thread_local int* fd_reparti_global[NOSPEDALI];
+thread_local int fd_dati_morti[NOSPEDALI];
 
 thread_local double tempo_attuale;
 thread_local double prossimo_giorno;
@@ -131,9 +138,13 @@ void inizializza_variabili() {
     // inizializza variabili simulazione
     timeout_paziente[COVID] = 3;
     timeout_paziente[NCOVID] = 3;
-
+/*
+    servizio_paziente[COVID] = 2; 
+    servizio_paziente[NCOVID] = 2; 
+*/
     servizio_paziente[COVID] = 480; 
     servizio_paziente[NCOVID] = 410; 
+
 
     soglia_utilizzo = 0.5;
 
@@ -151,28 +162,28 @@ void inizializza_variabili_per_simulazione(int stream) {
     _parametri_ospedale param;
     for(int i=0; i<NOSPEDALI; i++) {
 
-        if(i==0) {
-            param.media_interarrivo_coda_covid = 1; 
+        if(i==0) { // TV
+            param.media_interarrivo_coda_covid = 65.7189; 
             param.media_interarrivo_coda_normale = 20.8997;
             param.letti_per_reparto = 8;
             param.num_reparti_covid = 1;
             param.num_min_reparti_covid = 1;
             param.num_reparti_normali = 5;
             param.num_min_reparti_normali = 2;
-            param.soglia_aumento = 70;
+            param.soglia_aumento = 60;
             param.soglia_riduzione = 30;
             param.peso_ospedale = 0.037483;
-        } else {
-            param.media_interarrivo_coda_covid = 6;
-            param.media_interarrivo_coda_normale = 5;
-            param.letti_per_reparto = 3;
-            param.num_reparti_covid = 1;
-            param.num_min_reparti_covid = 1;
-            param.num_reparti_normali = 3;
-            param.num_min_reparti_normali = 1;
-            param.soglia_aumento = 80;
-            param.soglia_riduzione = 50;
-            param.peso_ospedale = 0.1;
+        } else { // UI
+            param.media_interarrivo_coda_covid = 1;
+            param.media_interarrivo_coda_normale = 16.987;
+            param.letti_per_reparto = 8;
+            param.num_reparti_covid = 2;
+            param.num_min_reparti_covid = 2;
+            param.num_reparti_normali = 6;
+            param.num_min_reparti_normali = 2;
+            param.soglia_aumento = 70;
+            param.soglia_riduzione = 30;
+            param.peso_ospedale = 0.11178;
         }
 
         #ifdef CONDIZIONI_INIZIALI
@@ -448,6 +459,21 @@ void processa_aggiorna_flussi_covid(descrittore_next_event* ne) {
         aggiorna_flusso_covid(&ospedale[i].coda[COVID], (prossimo_giorno/tick_per_giorno)-1, ospedale[i].peso_ospedale, ne->tempo_ne);
 }
 
+void inizializza_csv_morti(int mod) {
+
+    char* titolo = malloc(sizeof(50));
+    char* colonne[] = {"morti_ti","morti_coda", "morti_tot"};
+    int n_colonne = 3;
+
+    for(int i=0; i<NOSPEDALI; i++) {
+        sprintf(titolo, "./output/ospedale%d.csv", i);
+        if(mod == 0)
+            fd_dati_morti[i] = inizializza_csv(titolo, (char**)colonne, n_colonne);
+        else 
+            fd_dati_morti[i] = inizializza_csv_append(titolo, (char**)colonne, n_colonne);
+    }
+}
+
 // inizializzazione dei csv che memorizzano i dati real-time(RT) inerenti le code
 void inizializza_csv_code(int numero_simulazione, char* estensione) {
     char* directory_base = "./output/";
@@ -526,6 +552,91 @@ void inizializza_csv_reparti(int numero_simulazione, char* estensione) {
 
 void genera_output(int tipo_output) {
 
+    #ifdef BATCH
+    // l'ultimo step della simulazione batch calcolo  
+    // gli intervalli di confidenza e dopo esco
+    if(tipo_output == 1) { 
+
+        double tvalue = 2.3263; // valore critico superiore di una students con infiniti gradi di libertà ed alpha 0.01% (99% confidenza)
+
+        // alloca metadati per riga csv
+        char** dat = (char**)malloc(sizeof(char*) * NCOLONNECODE);
+        for(int i=0; i<NCOLONNECODE; i++)
+            dat[i] = malloc(sizeof(char) * 50);
+
+        int index;
+        for (int i = 0; i < NOSPEDALI; i++) {
+            index = 0;
+            for (int t = 0; t < NTYPE; t++) {
+                for (int pr = 0; pr < ospedale[i].coda[t].livello_pr; pr++) {
+
+                    double rad_n = sqrt(ospedale[i].coda[t].dati[pr].batch_attuale);
+
+                    double media_campionaria = calcola_media_campionaria(ospedale[i].coda[t].dati[pr].campione_tempo_coda, ospedale[i].coda[t].dati[pr].batch_attuale);
+                    double varianza_campionaria = calcola_varianza_campionaria(ospedale[i].coda[t].dati[pr].campione_tempo_coda, media_campionaria, ospedale[i].coda[t].dati[pr].batch_attuale);
+                    double limite_inf = media_campionaria - (varianza_campionaria * tvalue) / rad_n;
+                    double limite_sup = media_campionaria + (varianza_campionaria * tvalue) / rad_n;
+
+                    sprintf(dat[0], "tempo coda:");
+                    sprintf(dat[1], "(%f, %f)", limite_inf, limite_sup);
+
+                    media_campionaria = calcola_media_campionaria(ospedale[i].coda[t].dati[pr].campione_num_pazienti, ospedale[i].coda[t].dati[pr].batch_attuale);
+                    varianza_campionaria = calcola_varianza_campionaria(ospedale[i].coda[t].dati[pr].campione_num_pazienti, media_campionaria, ospedale[i].coda[t].dati[pr].batch_attuale);
+                    limite_inf = media_campionaria - (varianza_campionaria * tvalue) / rad_n;
+                    limite_sup = media_campionaria + (varianza_campionaria * tvalue) / rad_n;
+
+                    sprintf(dat[2], "pazienti coda:");
+                    sprintf(dat[3], "(%f, %f)", limite_inf, limite_sup);
+
+                    riempi_csv(fd_code[i][index], dat, NCOLONNECODE);
+                    index++;
+                }
+            }
+        }
+        // dealloca metadati per riga csv
+        for(int i=0; i<NCOLONNECODE; i++)
+            free(dat[i]);
+        free(dat);
+
+        // alloca metadati per riga csv
+        dat = (char**)malloc(sizeof(char*) * NCOLONNEREPARTI);
+        for(int i=0; i<NCOLONNEREPARTI; i++)
+            dat[i] = malloc(sizeof(char) * 50);
+
+        for (int i = 0; i < NOSPEDALI; i++) {
+            for (int t = 0; t < NTYPE; t++) {
+
+                double rad_n = sqrt(ospedale[i].storico[t].batch_attuale);
+
+                double media_campionaria = calcola_media_campionaria(ospedale[i].storico[t].campione_occupazione, ospedale[i].storico[t].batch_attuale);
+                double varianza_campionaria = calcola_varianza_campionaria(ospedale[i].storico[t].campione_occupazione, media_campionaria, ospedale[i].storico[t].batch_attuale);
+                double limite_inf = media_campionaria - (varianza_campionaria * tvalue) / rad_n;
+                double limite_sup = media_campionaria + (varianza_campionaria * tvalue) / rad_n;
+
+                sprintf(dat[0], "(%f, %f)", limite_inf, limite_sup);
+                riempi_csv(fd_reparti[i][t], dat, NCOLONNEREPARTI);
+            }
+        }
+
+        // dealloca metadati per riga csv
+        for(int i=0; i<NCOLONNEREPARTI; i++)
+            free(dat[i]);
+        free(dat);
+
+        return;
+    }
+    #endif
+
+    int morti_coda[NOSPEDALI];
+    int morti_ti[NOSPEDALI];
+    int morti_tot[NOSPEDALI];
+
+    for (int i = 0; i < NOSPEDALI; i++) {
+        morti_tot[i] = 0;
+        morti_ti[i] = 0;
+        morti_coda[i] = 0;
+    }    
+
     // salvataggio dati code
     char** dati = (char**)malloc(sizeof(char*) * NCOLONNECODE);
     int index;
@@ -533,6 +644,13 @@ void genera_output(int tipo_output) {
         index = 0;
         for (int t = 0; t < NTYPE; t++) {
             for (int pr = 0; pr < ospedale[i].coda[t].livello_pr; pr++) {
+
+                double pazienti_medi = ospedale[i].coda[t].dati[pr].area / (tempo_attuale - checkpoint_tempo);
+                double attesa_media;
+
+                if(t == COVID) 
+                    morti_coda[i] += ospedale[i].coda[t].dati[pr].usciti_morti;
+
                 dati[0] = int_to_string(ospedale[i].coda[t].dati[pr].accessi_normali);
                 dati[1] = int_to_string(ospedale[i].coda[t].dati[pr].accessi_altre_code);
                 dati[2] = int_to_string(ospedale[i].coda[t].dati[pr].accessi_altri_ospedali);
@@ -543,13 +661,13 @@ void genera_output(int tipo_output) {
                 dati[7] = int_to_string(ospedale[i].coda[t].dati[pr].permanenza_morti);
                 dati[8] = int_to_string(ospedale[i].coda[t].dati[pr].permanenza_aggravati);
                 dati[9] = int_to_string(t);
-                dati[10] = double_to_string(ospedale[i].coda[t].dati[pr].area / (tempo_attuale - checkpoint_tempo));     //pazienti medi
+                dati[10] = double_to_string(pazienti_medi); // pazienti medi
                 dati[11] = double_to_string(sqrt(ospedale[i].coda[t].dati[pr].varianza_wel_numero_pazienti/ ospedale[i].coda[t].dati[pr].index_wel_numero_pazienti));  //varianza num pazienti
 #ifdef BATCH
                 if(ospedale[i].coda[t].dati[pr].accessi_batch != 0)
                 {
-
-                    dati[12] = double_to_string(ospedale[i].coda[t].dati[pr].area / ospedale[i].coda[t].dati[pr].accessi_batch);
+                    attesa_media = ospedale[i].coda[t].dati[pr].area / ospedale[i].coda[t].dati[pr].accessi_batch;
+                    dati[12] = double_to_string(attesa_media);
 #else
                 if (ospedale[i].coda[t].dati[pr].accessi_normali +                                   //attesa media
                     ospedale[i].coda[t].dati[pr].accessi_altre_code +
@@ -570,6 +688,14 @@ void genera_output(int tipo_output) {
                     riempi_csv(fd_code[i][index], dati, NCOLONNECODE);
                 else
                     riempi_csv(fd_code_global[i][index], dati, NCOLONNECODE);
+                
+#ifdef BATCH
+                _ospedale *o = &ospedale[i];
+                _coda_pr *c = &(o->coda[t]);
+                c->dati[pr].campione_tempo_coda[c->dati[pr].batch_attuale] = attesa_media;
+                c->dati[pr].campione_num_pazienti[c->dati[pr].batch_attuale] = pazienti_medi;
+                c->dati[pr].batch_attuale++;
+#endif
                 for (int k = 0; k < NCOLONNECODE; k++)
                    free(dati[k]);
                 index++;
@@ -585,6 +711,8 @@ void genera_output(int tipo_output) {
     for (int i = 0; i < NOSPEDALI; i++) {
         for (int t = 0; t < NTYPE; t++) {
 
+            double occupazione_reparto;
+
             // leggo i dati relativi ai letti presenti in questo istante della simulazione
             for (int j = 0; j < ospedale[i].num_reparti[t]; j++) {
                 for (int k = 0; k < ospedale[i].reparto[t][j].num_letti; k++) {
@@ -592,30 +720,32 @@ void genera_output(int tipo_output) {
                     dati_temp[1] += ((double)ospedale[i].reparto[t][j].letto[k].num_entrati); // numero entrati nel letto
                     dati_temp[2] += ((double)ospedale[i].reparto[t][j].letto[k].num_usciti); // numero usciti dal letto
                     
-                    // l'ultimo evento della simulazione potrebbe aver comportato uno switch di reparti
-                    // in questo caso ci saranno dei letti con tempo di vita pari a 0 e ne va tenuto conto
-                    if((tempo_attuale - ospedale[i].reparto[t][j].letto[k].tempo_nascita) != 0) {
-                        dati_temp[3] += ((double)ospedale[i].reparto[t][j].letto[k].tempo_occupazione/
-                                            (tempo_attuale - ospedale[i].reparto[t][j].letto[k].tempo_nascita)); // percentuale di tempo per cui il letto è stato occupato
-                        num_letti++;
-                    }
+                    if(t == COVID)
+                        morti_ti[i] += ospedale[i].reparto[t][j].letto[k].num_usciti;
                 }
             }
 
-            // leggo i dati relativi ai letti portati nello storico ad opera della transizione di un reparto
-            dati_temp[0] += ospedale[i].storico[t].tempo_occupazione_letti;
-            dati_temp[1] += ospedale[i].storico[t].pazienti_entrati;
-            dati_temp[2] += ospedale[i].storico[t].pazienti_usciti;
-            dati_temp[3] += ospedale[i].storico[t].somma_utilizzazione_letti;
+            if(t == COVID)
+                morti_ti[i] += ospedale[i].storico[t].pazienti_usciti;
+
+            occupazione_reparto = ospedale[i].area[t] / tempo_attuale;
 
             dati[0] = int_to_string((int)dati_temp[0]);
             dati[1] = int_to_string((int)dati_temp[1]);
             dati[2] = int_to_string((int)dati_temp[2]);
-            dati[3] = double_to_string(dati_temp[3] / (num_letti + ospedale[i].storico[t].numero_letti_dismessi));
+            dati[3] = double_to_string(occupazione_reparto);
             if (tipo_output == 0)
                 riempi_csv(fd_reparti[i][t], dati, NCOLONNEREPARTI);
             else
                 riempi_csv(fd_reparti_global[i][t], dati, NCOLONNEREPARTI);
+
+#ifdef BATCH
+                _ospedale *o = &ospedale[i];
+                _storico_reparti *s = &(o->storico[t]);
+                s->campione_occupazione[s->batch_attuale] = occupazione_reparto;
+                s->batch_attuale++;
+#endif
+
             for (int k = 0; k < NCOLONNEREPARTI; k++) {
                 free(dati[k]);
                 dati_temp[k] = 0;
@@ -623,6 +753,24 @@ void genera_output(int tipo_output) {
             num_letti = 0;
         }
     }
+
+    for (int i = 0; i < NOSPEDALI; i++)
+        morti_tot[i] = morti_ti[i]/2 + morti_coda[i];
+    
+    #ifdef OUTPUT_MORTI
+    if(tipo_output == 1) {
+
+        int n_colonne = 3;
+        for(int i=0; i<NOSPEDALI; i++) {
+
+            dati[0] = int_to_string((int)morti_ti[i]/2);
+            dati[1] = int_to_string((int)morti_coda[i]);
+            dati[2] = int_to_string((int)morti_tot[i]);
+            riempi_csv(fd_dati_morti[i], dati, n_colonne);
+        }
+    }
+    #endif
+
     free(dati);
 }
 
@@ -665,6 +813,9 @@ void update_stats(double time_next_event) {
     int index;
     for (int i = 0; i < NOSPEDALI; i++) {
         for (int t = 0; t < NTYPE; t++) {
+
+            ospedale[i].area[t] += (time_next_event - tempo_attuale) * ottieni_occupazione_reparto(&ospedale[i], t);
+
             for (int pr = 0; pr < ospedale[i].coda[t].livello_pr; pr++) {
                 ospedale[i].coda[t].dati[pr].area += ((time_next_event - tempo_attuale) * (ospedale[i].coda[t].dati[pr].accessi_normali +
                                                                                           ospedale[i].coda[t].dati[pr].accessi_altre_code +
@@ -763,8 +914,8 @@ void* simulation_start(void* input) {
         tick_globale++;
 #endif
     }
-    genera_output_globale();
 end:
+    genera_output_globale();
     distruttore();
     return NULL;
 }
@@ -839,6 +990,10 @@ wait:
     printf("\n--- Progetto PMCSN - Modalita' BATCH -----");
     printf("\n------------------------------------------\n\n");
 
+    long s;
+    GetSeed(&s);
+    printf("Seed: %lu\n", s);
+
     int input[1] = { 0 };
     b = sqrt(TICK_END / 8);
     k = sqrt(TICK_END * 8);
@@ -851,23 +1006,46 @@ wait:
     return nsimulation;
 }
 
+void inizializza_multi_simulazioni(int argc, char** argv) {
 
-#ifdef TEST
-int main() {
+    char* nome_file_stream = "./output/stream.txt";
 
+    if(argc == 2 && strcmp(argv[1], "init") == 0) {
+        PlantSeeds(-1);
+        long seed;
+        GetSeed(&seed);
+        salva_stato_simulazione(nome_file_stream, seed, 0);
+        printf("Azzerato stato simulazione\n");
+        return;
+    }
+
+    struct data_sim data = leggi_stato_simulazione(nome_file_stream);
+    printf("Simulazione lanciata con seed %lu e stream %d\n", data.seed, data.stream);
+
+    if(data.stream == 0)
+        inizializza_csv_morti(0);
+    else
+        inizializza_csv_morti(1);
+
+    PlantSeeds(data.seed);
+    
+    simulation_start(&data.stream);
+
+    salva_stato_simulazione(nome_file_stream, data.seed, data.stream + 1);
 }
-#else
-int main() {
+
+int main(int argc, char** argv) {
 
     inizializza_variabili();
 
     #ifdef SIM_INTERATTIVA
     int stream = 0;
     simulation_start(&stream);
+    #elif MULTI_THREAD
+    inizializza_multi_simulazioni(argc, argv);
     #else
     inizializza_simulazioni();
-    #endif
     printf("\n\nDONE!\n");
+    #endif
     return 0;
 }
-#endif

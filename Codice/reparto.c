@@ -6,6 +6,12 @@ typedef struct {
     double numero_letti_dismessi;       // numero totali di letti che sono stati portati nello storico
     double tempo_occupazione_letti;     // tempo totale per cui i letti sono stati occupati
     double tempo_vita_letti;            // tempo totale per cui i letti hanno vissuto
+
+#ifdef BATCH
+    int batch_attuale;
+    double campione_occupazione[MAX_BATCH];
+#endif
+
 } _storico_reparti;
 
 typedef struct {
