@@ -1,7 +1,7 @@
 #define START 0					// inizio all'ora 0
 
 #ifdef BATCH
-#define TICK_END 100*100*100*100        // numero di eventi massimi per la simulazione batch
+#define TICK_END 100*100*100*1        // numero di eventi massimi per la simulazione batch
 #define END 18446744073709551615LU 		// valore irraggiungibile
 #define INF 18446744073709551615LU 		// valore irraggiungibile
 #else
@@ -28,6 +28,11 @@
 #define NCODENCOVID 2
 
 #define MAXNSIMULATION STREAMS
+
+#ifdef BATCH
+#define MAX_BATCH 4000
+#endif
+#define BATCH_SCARTATI 1
 
 char* colonne_dati_code[] = {
                 "accessi_normali","accessi_altre_code","accessi_altri_ospedali",
