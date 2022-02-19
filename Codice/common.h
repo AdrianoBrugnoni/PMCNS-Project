@@ -1,7 +1,7 @@
 #define START 0					// inizio all'ora 0
 
 #ifdef BATCH
-#define TICK_END 100*100*100*1        // numero di eventi massimi per la simulazione batch
+#define TICK_END 200*100*100*100        // numero di eventi massimi per la simulazione batch
 #define END 18446744073709551615LU 		// valore irraggiungibile
 #define INF 18446744073709551615LU 		// valore irraggiungibile
 #else
@@ -9,7 +9,7 @@
 #define INF 100*END			    // tempo irraggiungibile
 #endif
 
-#define NOSPEDALI 1             // numero di ospedali nella simulazione
+#define NOSPEDALI 2             // numero di ospedali nella simulazione
 
 #define COVID 0					// Tipo 1
 #define NCOVID 1				// Tipo 2
@@ -30,7 +30,7 @@
 #define MAXNSIMULATION STREAMS
 
 #ifdef BATCH
-#define MAX_BATCH 4000
+#define MAX_BATCH 5100
 #endif
 #define BATCH_SCARTATI 1
 

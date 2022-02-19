@@ -43,6 +43,8 @@ migliorativo_n:
 	$(CC) prog.c $(CCFLAGS) $(CFLAGS) $(flag_fissi) $(flag_normali) -DCOOPERAZIONE_OSPEDALI
 migliorativo_cond_mt:
 	$(CC) prog.c $(CCFLAGS) $(CFLAGS) $(flag_normali) -DMULTI_THREAD -DCONDIZIONI_INIZIALI -DCOOPERAZIONE_OSPEDALI
+migliorativo_batch_flusso_fisso:
+	$(CC) prog.c $(CCFLAGS) $(CFLAGS) $(flag_normali_flusso_fisso) -DBATCH -DCOOPERAZIONE_OSPEDALI
 stat:
 	$(CC) teststat stat.c -DTESTSTAT
 batch:

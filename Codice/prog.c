@@ -131,22 +131,18 @@ void inizializza_variabili() {
             if(i==j)
                 tempo_trasferimento[i][j] = 0; // ogni ospedale ha distanza 0 da se stesso
             else
-                tempo_trasferimento[i][j] = 1; // tutti gli ospedali sono distanti 1
+                tempo_trasferimento[i][j] = 0.416667; // tutti gli ospedali sono distanti x
         }
     }
 
     // inizializza variabili simulazione
     timeout_paziente[COVID] = 3;
     timeout_paziente[NCOVID] = 3;
-/*
-    servizio_paziente[COVID] = 2; 
-    servizio_paziente[NCOVID] = 2; 
-*/
+
     servizio_paziente[COVID] = 480; 
     servizio_paziente[NCOVID] = 410; 
 
-
-    soglia_utilizzo = 0.5;
+    soglia_utilizzo = 2;
 
     #ifdef SIM_INTERATTIVA
     ultimo_trasferimento.analizzato = 0;
@@ -170,19 +166,19 @@ void inizializza_variabili_per_simulazione(int stream) {
             param.num_min_reparti_covid = 1;
             param.num_reparti_normali = 5;
             param.num_min_reparti_normali = 2;
-            param.soglia_aumento = 60;
-            param.soglia_riduzione = 30;
+            param.soglia_aumento = 80;
+            param.soglia_riduzione = 40;
             param.peso_ospedale = 0.037483;
         } else { // UI
-            param.media_interarrivo_coda_covid = 1;
+            param.media_interarrivo_coda_covid = 22.0374;
             param.media_interarrivo_coda_normale = 16.987;
             param.letti_per_reparto = 8;
             param.num_reparti_covid = 2;
             param.num_min_reparti_covid = 2;
             param.num_reparti_normali = 6;
             param.num_min_reparti_normali = 2;
-            param.soglia_aumento = 70;
-            param.soglia_riduzione = 30;
+            param.soglia_aumento = 80;
+            param.soglia_riduzione = 40;
             param.peso_ospedale = 0.11178;
         }
 
@@ -552,7 +548,7 @@ void inizializza_csv_reparti(int numero_simulazione, char* estensione) {
 
 void genera_output(int tipo_output) {
 
-    #ifdef BATCH
+#ifdef BATCH
     // l'ultimo step della simulazione batch calcolo  
     // gli intervalli di confidenza e dopo esco
     if(tipo_output == 1) { 
@@ -625,7 +621,7 @@ void genera_output(int tipo_output) {
 
         return;
     }
-    #endif
+#endif
 
     int morti_coda[NOSPEDALI];
     int morti_ti[NOSPEDALI];
